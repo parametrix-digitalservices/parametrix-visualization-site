@@ -24,7 +24,7 @@
 </div>
 
 <div class="hero">
-  <img class="hero-img" src="assets/img/ps-hero.jpg" alt="Photo-composited rendering of a rebuilt urban street with bike lanes, transit and street trees" style="--focus: 50% 62%;">
+  <img class="hero-img" src="assets/img/hero-bridge.jpg" alt="Rendering of a new road bridge curving over a river, with a city skyline beyond" style="--focus: 50% 42%;">
   <div class="hero-veil"></div>
   <div class="hero-body">
     <div class="wrap">
@@ -52,8 +52,10 @@
     <div class="cards">
 
       <article class="card">
-        <div class="card-media">
-          <img src="assets/img/sr131-after.jpg" alt="Photo simulation of proposed interchange improvements composited into an aerial photograph">
+        <div class="card-media video">
+          <video src="assets/video/karcher-slider.mp4" poster="assets/img/karcher-poster.jpg"
+                 autoplay muted loop playsinline controls preload="metadata"
+                 aria-label="A before/after slider being dragged across a roundabout photo simulation, revealing the proposed design over the existing intersection"></video>
         </div>
         <div class="card-body">
           <span class="tag">Photo simulations</span>
@@ -70,8 +72,10 @@
       </article>
 
       <article class="card">
-        <div class="card-media">
-          <img src="assets/img/twin-poster.jpg" alt="Two screens of an interactive visualization application showing camera menus and a rendered corridor">
+        <div class="card-media video">
+          <video src="assets/video/twin-system.mp4" poster="assets/img/twin-system-poster.jpg"
+                 controls playsinline preload="metadata"
+                 aria-label="Walkthrough of the Visualization Twin application: camera menus, existing and proposed switching, traffic controls and ground-level views"></video>
         </div>
         <div class="card-body">
           <span class="tag">Real time</span>
@@ -172,6 +176,20 @@
     <span><a href="https://www.parametrix.com">parametrix.com</a></span>
   </div>
 </footer>
+
+<script>
+(function () {
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('video[autoplay]').forEach(function (v) {
+        v.removeAttribute('autoplay');
+        v.autoplay = false;
+        v.pause();
+      });
+    }
+  } catch (e) {}
+})();
+</script>
 
 </body>
 </html>
