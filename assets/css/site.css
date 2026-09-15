@@ -82,10 +82,10 @@ section { padding: 56px 0; }
 .card:nth-child(even) .card-media { order: 2; }
 .card-media { align-self: stretch; }
 .card-media img { display: block; width: 100%; height: 100%; min-height: 240px; object-fit: cover; }
-.card-media.diagram { display: flex; align-items: center; background: var(--paper); }
+.card-media.diagram { align-self: center; display: flex; align-items: center; background: #F4F4F3; }
 .card-media.video { align-self: center; display: flex; align-items: center; background: transparent; }
 .card-media.video video { display: block; width: 100%; height: auto; }
-.card-media.diagram img { object-fit: contain; min-height: 0; height: auto; padding: 18px; }
+.card-media.diagram img { object-fit: contain; min-height: 0; height: auto; padding: 0; }
 .card-body { padding: 28px 32px 30px; }
 .card-body .tag { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--red); }
 .card-body h3 { font-size: 23px; margin: 7px 0 10px; }
