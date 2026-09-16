@@ -93,7 +93,7 @@
         </div>
       </article>
 
-      <article class="card" id="snapstreets">
+      <article class="card">
         <div class="card-media diagram">
           <img src="assets/img/snapstreets.jpg" alt="Exploded view of the SnapStreets kit showing labelled sidewalk, road, bus, shelter and bike lane modules">
         </div>
@@ -107,7 +107,7 @@
             <li>Lights, signals, PHBs, gantries, soundwall, shelters, trees</li>
             <li>Ships in Highway and Complete Street configurations</li>
           </ul>
-          <p class="card-note"><a href="mailto:wsullivan@parametrix.com?subject=SnapStreets%20kit">Ask for the kit guide &rarr;</a></p>
+          <a class="card-cta" href="#snapstreets">See how it works &rarr;</a>
         </div>
       </article>
 
@@ -115,7 +115,61 @@
   </div>
 </section>
 
-<section>
+
+<section id="snapstreets">
+  <div class="wrap">
+    <div class="eyebrow"><h2>SnapStreets</h2><div class="line"></div></div>
+
+    <div class="snap-top">
+      <div>
+        <h3 class="snap-h">See how it works</h3>
+        <div class="embed-frame">
+          <iframe src="https://www.youtube-nocookie.com/embed/HBAo1fZbss8?rel=0"
+                  title="SnapStreets demonstration — building roadway cross-sections from the kit"
+                  loading="lazy" referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+        </div>
+        <p class="caption">Four cross-sections built from the same box &mdash; highway, cycle track, pedestrian safety and bus rapid transit.</p>
+      </div>
+
+      <aside class="panel">
+        <h3>Kit Guide</h3>
+        <p>Two sides: what every module is, how the pieces snap together, and worked examples of the four configurations. The same guide that ships in the box.</p>
+        <a class="btn" href="assets/docs/SnapStreets-Kit-Guide.pdf" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M4 20h16"></path></svg>
+          Download the PDF
+        </a>
+        <p class="meta">PDF &middot; 2 pages &middot; 4.5&nbsp;MB</p>
+      </aside>
+    </div>
+
+    <form class="reqform" id="kitform" novalidate>
+      <h3>Request a kit</h3>
+      <p>Tell us which configuration you want and what you are using it for, and we&rsquo;ll come back to you on availability.</p>
+
+      <fieldset>
+        <legend>Which kit?</legend>
+        <div class="kits">
+          <label><input type="checkbox" name="kit" value="Highway kit"> Highway kit</label>
+          <label><input type="checkbox" name="kit" value="Complete Street kit"> Complete Street kit</label>
+        </div>
+      </fieldset>
+
+      <div class="fields">
+        <label class="field"><span>Name <i aria-hidden="true">*</i></span><input type="text" name="name" autocomplete="name" required></label>
+        <label class="field"><span>Organization</span><input type="text" name="org" autocomplete="organization"></label>
+        <label class="field"><span>Email <i aria-hidden="true">*</i></span><input type="email" name="email" autocomplete="email" required></label>
+        <label class="field wide"><span>Comments or requests</span><textarea name="comments" rows="4"></textarea></label>
+      </div>
+
+      <button type="submit">Request the kit</button>
+      <p class="formnote" id="kitformnote">Opens your email app with everything filled in, addressed to Wayne Sullivan &mdash; nothing is sent until you press send there.</p>
+    </form>
+  </div>
+</section>
+
+<section class="surface">
   <div class="wrap">
     <div class="eyebrow"><h2>Who builds it</h2><div class="line"></div></div>
     <div class="grid2">
@@ -190,6 +244,36 @@
       });
     }
   } catch (e) {}
+})();
+
+(function () {
+  var f = document.getElementById('kitform');
+  if (!f) return;
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var d = new FormData(f);
+    var kits = d.getAll('kit');
+    var note = document.getElementById('kitformnote');
+    var name = (d.get('name') || '').trim();
+    var email = (d.get('email') || '').trim();
+    if (!name || !email) {
+      if (note) note.textContent = 'Please add your name and email so we can reply.';
+      (name ? f.querySelector('[name=email]') : f.querySelector('[name=name]')).focus();
+      return;
+    }
+    var subject = 'SnapStreets kit request' + (kits.length ? ' \u2014 ' + kits.join(' + ') : '');
+    var body = [
+      'Kit requested: ' + (kits.length ? kits.join(' + ') : '(not specified)'),
+      'Name: ' + name,
+      'Organization: ' + ((d.get('org') || '').trim() || '(not given)'),
+      'Email: ' + email,
+      '',
+      'Comments or requests:',
+      (d.get('comments') || '').trim() || '(none)'
+    ].join('\r\n');
+    window.location.href = 'mailto:wsullivan@parametrix.com?subject=' +
+      encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  });
 })();
 </script>
 
