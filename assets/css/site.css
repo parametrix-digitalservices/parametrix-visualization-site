@@ -98,39 +98,6 @@ section { padding: 56px 0; }
 .card-cta:hover { color: var(--red); text-decoration: none; }
 .card-note { margin-top: 16px; font-size: 14.5px; }
 
-/* snapstreets detail */
-.snap-top { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; }
-.snap-h { font-size: 19px; margin-bottom: 12px; }
-.embed-frame { background: #000; }
-.embed-frame iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
-.panel { background: var(--surface); border-top: 3px solid var(--red); padding: 22px 24px 26px; }
-.panel h3 { font-size: 19px; }
-.panel p { font-size: 14.5px; color: var(--ink-soft); line-height: 1.45; margin-top: 10px; }
-.panel .meta { font-size: 13px; margin-top: 12px; }
-.btn { display: inline-flex; align-items: center; gap: 9px; margin-top: 16px; padding: 11px 17px; background: var(--red); color: #fff; font-weight: 700; font-size: 14.5px; }
-.btn:hover { background: #cf3319; color: #fff; text-decoration: none; }
-.btn svg { flex: 0 0 auto; }
-
-.reqform { margin-top: 36px; background: var(--surface); border-top: 3px solid var(--red); padding: 26px 28px 30px; }
-.reqform h3 { font-size: 19px; }
-.reqform > p { font-size: 14.5px; color: var(--ink-soft); margin-top: 8px; line-height: 1.45; max-width: 620px; }
-.reqform fieldset { border: 0; margin: 20px 0 0; padding: 0; }
-.reqform legend { font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-soft); padding: 0; }
-.kits { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 10px; }
-.kits label { display: flex; align-items: center; gap: 9px; font-size: 15.5px; font-weight: 600; cursor: pointer; }
-.kits input { width: 19px; height: 19px; accent-color: var(--red); cursor: pointer; }
-.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field.wide { grid-column: 1 / -1; }
-.field span { font-size: 13px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-soft); }
-.field span i { font-style: normal; color: var(--red); }
-.field input, .field textarea { font: inherit; font-size: 15.5px; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); padding: 10px 12px; width: 100%; }
-.field textarea { resize: vertical; min-height: 96px; }
-.field input:focus, .field textarea:focus { outline: 2px solid var(--link); outline-offset: 1px; border-color: var(--link); }
-.reqform button { margin-top: 22px; padding: 12px 22px; background: var(--red); color: #fff; border: 0; font: inherit; font-size: 15.5px; font-weight: 700; cursor: pointer; }
-.reqform button:hover { background: #cf3319; }
-.formnote { font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; line-height: 1.45; max-width: 620px; }
-
 /* video */
 .player { background: #000; }
 .player video { display: block; width: 100%; height: auto; }
@@ -232,7 +199,6 @@ footer a { color: #fff; }
   body { font-size: 16px; }
   section { padding: 40px 0; }
   .grid2, .shots, .split, .rules { grid-template-columns: 1fr; }
-  .snap-top, .fields { grid-template-columns: 1fr; }
   .card { grid-template-columns: 1fr; }
   .card:nth-child(even) .card-media { order: 0; }
   .card-media img { min-height: 190px; }
