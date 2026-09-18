@@ -158,6 +158,20 @@ section { padding: 56px 0; }
 .rule p { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
 .closer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 15.5px; line-height: 1.5; }
 
+/* what we need from you */
+.needs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 44px; }
+.need { border-top: 3px solid var(--rule); padding-top: 14px; }
+.need.key { border-top-color: var(--red); }
+.need .req { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft); }
+.need.key .req { color: var(--red); }
+.need h3 { font-family: Assistant, "Segoe UI", sans-serif; font-size: 16px; font-weight: 700; margin: 4px 0 6px; }
+.need p { font-size: 15px; color: var(--ink-soft); line-height: 1.5; }
+.need ul { list-style: none; margin-top: 8px; }
+.need li { position: relative; padding-left: 15px; font-size: 15px; color: var(--ink-soft); line-height: 1.45; margin-bottom: 5px; }
+.need li::before { content: ""; position: absolute; left: 0; top: 9px; width: 6px; height: 2px; background: var(--red); }
+.callout { margin-top: 28px; border-left: 3px solid var(--red); background: var(--paper); padding: 16px 20px; font-size: 15px; line-height: 1.5; color: var(--ink-soft); }
+.callout b { color: var(--ink); font-weight: 700; }
+
 /* delivery + price */
 .split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 40px; align-items: start; }
 .price { border-top: 3px solid var(--red); background: var(--paper); padding: 22px 24px 24px; }
@@ -198,7 +212,7 @@ footer a { color: #fff; }
 @media (max-width: 720px) {
   body { font-size: 16px; }
   section { padding: 40px 0; }
-  .grid2, .shots, .split, .rules { grid-template-columns: 1fr; }
+  .grid2, .shots, .split, .rules, .needs { grid-template-columns: 1fr; }
   .card { grid-template-columns: 1fr; }
   .card:nth-child(even) .card-media { order: 0; }
   .card-media img { min-height: 190px; }
