@@ -170,14 +170,10 @@
       <div class="swlbl" id="swR">Proposed</div>
 
       <div class="annot" id="annot">
-        <svg class="lead" id="leads">
-          <line x1="58%" y1="49%" x2="40%" y2="25%" stroke="#F36E21" stroke-width="1" stroke-dasharray="4 3"/>
-          <line x1="46.2%" y1="58.8%" x2="22%" y2="46%" stroke="#F36E21" stroke-width="1" stroke-dasharray="4 3"/>
-          <line x1="55%" y1="68%" x2="74%" y2="42%" stroke="#0073BB" stroke-width="1.2" stroke-dasharray="4 3"/>
-        </svg>
+        <svg class="lead" id="leads"></svg>
 
         <div class="dot" style="left:58%;top:49%;background:#F36E21"></div>
-        <div class="card ai" style="left:14%;top:8%;max-width:246px"><div class="top"></div><div class="in">
+        <div class="card ai" id="c-statue" style="left:14%;top:8%;max-width:246px"><div class="top"></div><div class="in">
           <div class="ctag" style="color:#F89152"><i style="background:#F36E21"></i>AI Generated &middot; Inpaint</div>
           <div class="ctitle">Landmark Sculpture</div>
           <div class="cdesc">Centerpiece statue composited into the roundabout island via generative inpainting over the base render.</div>
@@ -189,7 +185,7 @@
         <div class="dot s" style="left:49.9%;top:46.1%;background:#F36E21"></div>
         <div class="dot s" style="left:73.9%;top:68.5%;background:#F36E21"></div>
         <div class="dot s" style="left:76.8%;top:89.8%;background:#F36E21"></div>
-        <div class="card ai" style="left:2.5%;top:54%;max-width:230px"><div class="top"></div><div class="in">
+        <div class="card ai" id="c-bikes" style="left:2.5%;top:54%;max-width:230px"><div class="top"></div><div class="in">
           <div class="ctag" style="color:#F89152"><i style="background:#F36E21"></i>AI Generated &middot; 4 instances</div>
           <div class="ctitle">Cyclist Entourage</div>
           <div class="cdesc">People on bikes added to the protected bike lanes to illustrate active use. Four placements across the scene.</div>
@@ -198,7 +194,7 @@
         </div></div>
 
         <div class="dot" style="left:55%;top:68%;background:#0073BB"></div>
-        <div class="card td" style="left:71%;top:24%;max-width:234px"><div class="top"></div><div class="in">
+        <div class="card td" id="c-3d" style="left:71%;top:24%;max-width:234px"><div class="top"></div><div class="in">
           <div class="ctag" style="color:#3D9BDB"><i style="background:#0073BB"></i>3D Modelled &middot; Rendered</div>
           <div class="ctitle">Roundabout &amp; Complete Street</div>
           <div class="cdesc">Modelled geometry rendered over the drone plate: single-lane roundabout, raised median islands, protected bike lanes, crosswalks, and desert landscaping.</div>
@@ -245,7 +241,36 @@ const $=id=>document.getElementById(id);
 const stage=$('stage'),proposed=$('proposed'),divider=$('divider'),h3d=$('h3d'),hai=$('hai'),
       annot=$('annot'),legend=$('legend'),ctrl=$('ctrl'),hint=$('hint'),swL=$('swL'),swR=$('swR');
 const tabs=document.querySelectorAll('.tab');
+const leads=$('leads');
 let mode='overlay',filt='both',callsOn=true,swipe=50,drag=false;
+
+// Leader lines are drawn in JS so they always meet the card's real edge,
+// at any screen aspect. Each entry: anchor point (% of stage) + its card.
+const SVGNS='http://www.w3.org/2000/svg';
+const CO=[
+  {ax:58,   ay:49,   color:'#F36E21', sel:'#c-statue'},
+  {ax:46.2, ay:58.8, color:'#F36E21', sel:'#c-bikes'},
+  {ax:55,   ay:68,   color:'#0073BB', sel:'#c-3d'}
+];
+function updateLeaders(){
+  if(mode!=='overlay'||!callsOn){leads.innerHTML='';return;}
+  const sr=stage.getBoundingClientRect();
+  leads.innerHTML='';
+  CO.forEach(o=>{
+    const card=document.querySelector(o.sel); if(!card)return;
+    const cr=card.getBoundingClientRect();
+    const Ax=o.ax/100*sr.width, Ay=o.ay/100*sr.height;
+    const l=cr.left-sr.left, t=cr.top-sr.top, r=l+cr.width, b=t+cr.height;
+    // closest point on the card's border to the anchor
+    const cx=Math.max(l,Math.min(Ax,r)), cy=Math.max(t,Math.min(Ay,b));
+    const ln=document.createElementNS(SVGNS,'line');
+    ln.setAttribute('x1',Ax); ln.setAttribute('y1',Ay);
+    ln.setAttribute('x2',cx); ln.setAttribute('y2',cy);
+    ln.setAttribute('stroke',o.color); ln.setAttribute('stroke-width','1.2');
+    ln.setAttribute('stroke-dasharray','4 3'); ln.setAttribute('stroke-linecap','round');
+    leads.appendChild(ln);
+  });
+}
 
 function swatch(el,color,kind){
   const c=document.createElement('canvas');c.width=30;c.height=15;const x=c.getContext('2d');
@@ -266,6 +291,7 @@ function setMode(m){
   else if(m==='proposed'){proposed.style.clipPath='inset(0 0 0 0)';hint.textContent='Proposed simulation';hint.style.display='block';}
   else if(m==='swipe'){proposed.style.clipPath=`inset(0 ${100-swipe}% 0 0)`;divider.style.display='block';swL.style.display='block';swR.style.display='block';}
   else if(m==='overlay'){proposed.style.clipPath='inset(0 0 0 0)';applyFilter();annot.style.display=callsOn?'block':'none';legend.style.display='block';ctrl.style.display='flex';}
+  requestAnimationFrame(updateLeaders);
 }
 function applyFilter(){if(mode!=='overlay')return;h3d.style.display=(filt==='ai')?'none':'block';hai.style.display=(filt==='3d')?'none':'block';}
 tabs.forEach(t=>t.addEventListener('click',()=>setMode(t.dataset.mode)));
@@ -283,9 +309,15 @@ window.addEventListener('touchend',()=>drag=false);
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('active',x===b));filt=b.dataset.f;applyFilter();}));
 $('op').addEventListener('input',e=>{const v=e.target.value;$('ophint').textContent=v+'%';h3d.style.opacity=v/100;hai.style.opacity=v/100;});
-$('tcall').addEventListener('click',()=>{callsOn=!callsOn;$('tcall').classList.toggle('active',callsOn);annot.style.display=(mode==='overlay'&&callsOn)?'block':'none';});
+$('tcall').addEventListener('click',()=>{callsOn=!callsOn;$('tcall').classList.toggle('active',callsOn);annot.style.display=(mode==='overlay'&&callsOn)?'block':'none';requestAnimationFrame(updateLeaders);});
 window.addEventListener('keydown',e=>{if(e.key==='1')setMode('existing');if(e.key==='2')setMode('proposed');if(e.key==='3')setMode('swipe');if(e.key==='4')setMode('overlay');});
 setMode('overlay');
+// keep leaders locked to the card edges through any layout/aspect change
+const relayout=()=>requestAnimationFrame(updateLeaders);
+window.addEventListener('resize',relayout);
+window.addEventListener('load',relayout);
+if(window.ResizeObserver){new ResizeObserver(relayout).observe(stage);}
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(relayout);}
 </script>
 </body>
 </html>
