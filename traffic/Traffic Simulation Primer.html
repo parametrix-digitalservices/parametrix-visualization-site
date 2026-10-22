@@ -1,0 +1,752 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Traffic Simulation Primer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;800&family=Roboto+Slab:wght@600;700&display=swap">
+<style>
+/* Layout: charcoal brand bar, one reading column (~68ch) that widens to a two-column
+   "dialog + viewport" stage for each animated walkthrough. Mock dialogs keep the
+   Unreal editor's own dark look in both themes; the page around them follows the theme. */
+:root{
+  --bg:#FFFFFF; --surface:#F9FAFB; --fg:#333333; --muted:#676768; --line:#DBDDDC; --line-soft:#F2F2F2;
+  --accent:#EE3D24; --link:#0073BB; --sector:#FCC214; --good:#3FB549; --warn:#F36E21;
+  --bar:#333333; --bar-fg:#FFFFFF;
+  --font-head:'Roboto Slab',Georgia,serif; --font-body:'Assistant','Segoe UI',system-ui,sans-serif;
+  --mono:ui-monospace,Consolas,"Cascadia Mono",monospace;
+  /* Unreal editor (Slate) mock palette — fixed on purpose */
+  --ue-bg:#1b1b1b; --ue-panel:#242424; --ue-head:#2c2c2c; --ue-input:#151515; --ue-border:#3b3b3b;
+  --ue-text:#d9d9d9; --ue-dim:#8f8f8f; --ue-sel:#2f6fd6; --ue-btn:#383838;
+  --sig-g:#26a626; --sig-y:#e8b321; --sig-r:#c0392b; --sig-rdark:#7a1a1a; --sig-off:#3a3a3a;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#1d1e1f; --surface:#262728; --fg:#EDEDED; --muted:#B3B4B5; --line:#454647; --line-soft:#2f3031;
+  --accent:#F0533C; --link:#5FB2E8; --bar:#111213; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#1d1e1f; --surface:#262728; --fg:#EDEDED; --muted:#B3B4B5; --line:#454647; --line-soft:#2f3031;
+  --accent:#F0533C; --link:#5FB2E8; --bar:#111213; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:17px;line-height:1.55}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+::selection{background:var(--accent);color:#fff}
+h1,h2,h3{font-family:var(--font-head);font-weight:700;line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,4.5vw,2.9rem)}
+h2{font-size:1.6rem;margin-top:3.5rem;padding-top:.6rem;border-top:3px solid var(--accent);display:inline-block}
+h3{font-size:1.15rem;margin-top:2rem}
+p{margin:.8rem 0;max-width:68ch}
+ul,ol{max-width:68ch;padding-left:1.3rem}
+li{margin:.3rem 0}
+code{font-family:var(--mono);font-size:.88em;background:var(--line-soft);padding:.1em .35em;border-radius:3px}
+pre{font-family:var(--mono);font-size:.85rem;background:var(--ue-bg);color:#cfe6ff;padding:.8rem 1rem;border-radius:4px;overflow-x:auto;max-width:100%}
+.eyebrow{font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;color:var(--muted)}
+
+.bar{background:var(--bar);color:var(--bar-fg);padding-block:.9rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-in{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.bar img{height:28px;width:auto}
+.bar .div{width:1px;height:26px;background:rgba(255,255,255,.3)}
+.bar span{font-family:var(--font-head);font-weight:600;font-size:1.05rem;letter-spacing:.01em}
+.wrap{max-width:1080px;margin:0 auto;padding-block:2rem 4rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2rem;align-items:end;margin-bottom:1.5rem}
+.hero p.lede{font-size:1.2rem;max-width:60ch;color:var(--muted)}
+.chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.chip{font-size:.82rem;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:.2rem .7rem;color:var(--muted)}
+.chip.sector{border-color:var(--sector);color:var(--fg);background:color-mix(in srgb,var(--sector) 20%,transparent)}
+.toc{display:flex;gap:.3rem 1.2rem;flex-wrap:wrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.7rem 0;font-size:.95rem}
+.toc a{font-weight:600}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.6rem;margin:1.5rem 0;counter-reset:step}
+.pipe > div{background:var(--surface);border-top:3px solid var(--accent);padding:.8rem .9rem;min-width:0;position:relative}
+.pipe > div:nth-child(n+2):before{content:"";position:absolute;left:-.45rem;top:50%;width:.6rem;height:.6rem;border-right:2px solid var(--muted);border-top:2px solid var(--muted);transform:translateY(-50%) rotate(45deg)}
+.pipe b{font-family:var(--font-head);display:block;margin-bottom:.3rem}
+.pipe small{display:block;color:var(--muted);font-size:.85rem;line-height:1.4}
+@media (max-width:760px){.pipe{grid-template-columns:1fr 1fr}.pipe > div:before{display:none}}
+@media (max-width:460px){.pipe{grid-template-columns:1fr}}
+
+table.t{border-collapse:collapse;width:100%;font-size:.95rem;margin:1rem 0}
+.tw{overflow-x:auto;max-width:100%}
+table.t th{text-align:left;font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--line);padding:.5rem .6rem}
+table.t td{border-bottom:1px solid var(--line);padding:.55rem .6rem;vertical-align:top}
+table.t td:first-child{font-weight:600;white-space:nowrap}
+table.t tbody tr:nth-child(even){background:var(--surface)}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---------- walkthrough stage ---------- */
+.stage{margin:1.5rem 0 2.5rem;border:1px solid var(--line);background:var(--surface);border-radius:6px;overflow:hidden}
+.stage-head{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.7rem 1rem;border-bottom:1px solid var(--line)}
+.stage-head b{font-family:var(--font-head)}
+.stage-head .sub{color:var(--muted);font-size:.9rem}
+.stage-body{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:0}
+.stage-body > .view{border-left:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;min-width:0}
+.view h4{margin:0;padding:.5rem .8rem;font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line-soft)}
+.view svg{width:100%;height:auto;display:block;max-width:100%}
+.view .legend{padding:.5rem .8rem;font-size:.82rem;color:var(--muted);display:flex;gap:.9rem;flex-wrap:wrap;border-top:1px solid var(--line-soft);margin-top:auto}
+.legend i{display:inline-block;width:.75em;height:.75em;border-radius:50%;margin-right:.3em;vertical-align:-1px}
+.ctl{display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;border-top:1px solid var(--line);flex-wrap:wrap;background:var(--bg)}
+.ctl button{font:inherit;font-weight:600;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:4px;padding:.3rem .7rem;cursor:pointer;min-width:2.4rem}
+.ctl button:hover{border-color:var(--muted)}
+.ctl button:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+.ctl .dots{display:flex;gap:.3rem}
+.ctl .dots i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block;cursor:pointer}
+.ctl .dots i.on{background:var(--accent)}
+.ctl .cap{flex:1 1 100%;font-size:.98rem;min-height:2.6em}
+.ctl .cap b{color:var(--accent)}
+.ctl .stepno{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
+@media (max-width:860px){.stage-body{grid-template-columns:1fr}.stage-body > .view{border-left:0;border-top:1px solid var(--line)}}
+
+/* ---------- Unreal dialog mock ---------- */
+.ue{background:var(--ue-bg);color:var(--ue-text);font-family:'Assistant','Segoe UI',system-ui,sans-serif;font-size:12.5px;line-height:1.35;padding:8px;min-width:0;color-scheme:dark}
+.ue .tabbar{display:flex;align-items:center;gap:6px;background:#111;padding:4px 6px 0;margin:-8px -8px 8px}
+.ue .tab{background:var(--ue-panel);padding:4px 12px;border-radius:4px 4px 0 0;color:var(--ue-dim)}
+.ue .tab.on{color:var(--ue-text);border-top:2px solid var(--ue-sel)}
+.ue .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.ue label{color:var(--ue-dim)}
+.ue .in{background:var(--ue-input);border:1px solid var(--ue-border);padding:2px 6px;border-radius:3px;min-width:52px;display:inline-block;font-variant-numeric:tabular-nums;transition:box-shadow .3s}
+.ue .in.dis{opacity:.4}
+.ue .in.combo:after{content:" BE";color:var(--ue-dim)}
+.ue .box{border:1px solid var(--ue-border);padding:4px 8px;border-radius:3px;display:flex;gap:8px;align-items:center;margin-left:auto}
+.ue .box b{font-weight:600;color:var(--ue-dim);margin-right:2px}
+.ue .seg{display:flex;border:1px solid var(--ue-border);border-radius:3px;overflow:hidden;margin:4px 0 8px;width:max-content}
+.ue .seg span{padding:3px 14px;color:var(--ue-dim)}
+.ue .seg span.on{background:var(--ue-sel);color:#fff}
+.ue .seg span.dis{opacity:.4}
+.ue .btn{background:var(--ue-btn);border:1px solid var(--ue-border);border-radius:3px;padding:2px 9px;color:var(--ue-text);display:inline-block;transition:background .2s,box-shadow .2s}
+.ue .btn.hot{background:var(--ue-sel);box-shadow:0 0 0 2px rgba(47,111,214,.45)}
+.ue .hl{box-shadow:0 0 0 2px var(--ue-sel)}
+.ue .split{display:grid;grid-template-columns:3fr 2fr;gap:8px;min-width:0}
+@media (max-width:520px){.ue .split{grid-template-columns:1fr}}
+.ue .panel{background:var(--ue-panel);border:1px solid var(--ue-border);border-radius:3px;padding:6px;min-width:0}
+.ue .panel h5{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ue-dim);font-weight:600}
+.ue table{border-collapse:collapse;width:100%;font-size:12px}
+.ue th{text-align:left;color:var(--ue-dim);font-weight:600;padding:2px 5px;border-bottom:1px solid var(--ue-border);white-space:nowrap}
+.ue td{padding:2px 5px;border-bottom:1px solid #2a2a2a;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ue tr.sel td{background:rgba(47,111,214,.28)}
+.ue tr.act td{box-shadow:inset 3px 0 0 var(--sig-g)}
+.ue .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ue .cb{display:inline-block;width:12px;height:12px;border:1px solid #666;border-radius:2px;background:var(--ue-input);vertical-align:-2px;margin-right:6px;position:relative}
+.ue .cb.on{background:var(--ue-sel);border-color:var(--ue-sel)}
+.ue .cb.on:after{content:"";position:absolute;left:3px;top:0px;width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.ue .cb.new{animation:pop .5s ease-out}
+@keyframes pop{0%{box-shadow:0 0 0 0 rgba(47,111,214,.9)}100%{box-shadow:0 0 0 8px rgba(47,111,214,0)}}
+.ue .tline{padding:2px 0;color:var(--ue-text)}
+.ue .tline.hov{background:rgba(255,255,255,.06)}
+.ue .tag{color:#e0b02a;font-size:11px;margin-left:4px}
+.ue .also{color:var(--ue-dim);font-size:11px;margin-left:4px}
+.ue .dim{color:var(--ue-dim)}
+.ue .ok{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+.ue .cycle-wrap{display:flex;justify-content:center;background:var(--ue-panel);border:1px solid var(--ue-border);border-radius:3px;margin-bottom:8px}
+.ue .cycle-wrap svg{width:min(100%,250px);height:auto;display:block}
+.ue .toggle3{display:inline-flex;border:1px solid var(--ue-border);border-radius:3px;overflow:hidden}
+.ue .toggle3 span{padding:0 6px;color:var(--ue-dim);font-size:11px}
+.ue .toggle3 span.on{background:#555;color:#fff}
+.ue .act-bar{display:flex;align-items:center;gap:8px;background:var(--ue-panel);border:1px solid var(--ue-border);padding:5px 8px;border-radius:3px;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.ue .act-bar .track{flex:1;height:8px;background:#111;border-radius:4px;position:relative;overflow:hidden;min-width:60px}
+.ue .act-bar .track i{position:absolute;left:0;top:0;bottom:0;background:var(--sig-g)}
+.ue .act-bar .track u{position:absolute;top:0;bottom:0;width:1px;background:#999}
+.ue .reason{font-size:11px;color:#e0b02a;min-width:5.5em}
+/* OD grid */
+.ue .ctabs{display:flex;gap:2px;flex-wrap:wrap;margin-bottom:6px}
+.ue .ctabs span{padding:2px 9px;border-radius:3px 3px 0 0;background:#1f1f1f;color:var(--ue-dim);border:1px solid var(--ue-border);border-bottom:0}
+.ue .ctabs span.on{background:var(--ue-panel);color:var(--ue-text);border-top:2px solid var(--ue-sel)}
+.ue .ctabs span.has:after{content:"2";color:var(--ue-sel);margin-left:4px}
+.ue .grid{display:grid;gap:1px;background:#111;border:1px solid var(--ue-border);font-size:12px}
+.ue .grid > div{background:var(--ue-panel);padding:3px 6px;text-align:right;font-variant-numeric:tabular-nums;min-height:22px}
+.ue .grid > .h{background:var(--ue-head);color:var(--ue-dim);text-align:left}
+.ue .grid > .c{background:var(--ue-input)}
+.ue .grid > .c.diag{background:#1c1c1c;color:#444}
+.ue .grid > .c.sel{outline:2px solid var(--ue-sel);outline-offset:-2px}
+.ue .grid > .c.on{color:#fff}
+.ue .grid > .c.rv{animation:rv .4s both}
+@keyframes rv{from{color:transparent;background:#223a62}to{}}
+.ue .totals{color:var(--ue-dim);font-size:11.5px;margin-bottom:6px}
+.ue .totals b{color:var(--ue-text);font-weight:600}
+.ue .note{background:#2a2410;border:1px solid #5a4a12;color:#e8d38a;padding:4px 8px;border-radius:3px;font-size:11.5px;margin-top:6px}
+.ue .cmd{font-family:var(--mono);background:#0d0d0d;color:#9fd1ff;padding:4px 8px;border-radius:3px;font-size:11.5px;margin-top:6px;overflow-x:auto}
+
+.callout{border-left:4px solid var(--sector);background:var(--surface);padding:.8rem 1rem;margin:1.2rem 0;max-width:72ch}
+.callout.red{border-left-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem 2.5rem}
+.two > div{min-width:0}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:.2rem 1rem;font-size:.95rem;max-width:68ch}
+.kv dt{font-weight:600;white-space:nowrap}
+.kv dd{margin:0;color:var(--muted)}
+footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;color:var(--muted);font-size:.88rem;max-width:none}
+@media (prefers-reduced-motion:reduce){.ue .cb.new,.ue .grid > .c.rv{animation:none}}
+</style>
+
+<header class="bar"><div class="bar-in">
+  <img alt="Parametrix" src="data:image/png;base64,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">
+  <span class="div"></span><span>Traffic Simulation Primer</span>
+</div></header>
+
+<main class="wrap">
+<div class="hero">
+  <div>
+    <div class="eyebrow">Transportation · internal briefing</div>
+    <h1>How the traffic simulation works, and how you author an intersection in it</h1>
+    <p class="lede">A microscopic traffic simulation built inside Unreal Engine 5.8. Roads, signals and demand are authored in the editor with tools modelled on Aimsun, then driven by car-following, lane-change and gap-acceptance models at scale. This page is for traffic engineers who will author scenarios or review results.</p>
+    <div class="chips"><span class="chip sector">Transportation</span><span class="chip">Unreal Engine 5.8</span><span class="chip">Mass entity framework</span><span class="chip">Aimsun-style authoring</span><span class="chip">Status as of 21 Oct 2026</span></div>
+  </div>
+</div>
+<nav class="toc">
+  <a href="#overview">Overview</a><a href="#network">Network model</a><a href="#signals">Signal timing dialog</a><a href="#demand">Demand &amp; OD dialog</a><a href="#models">Driver models</a><a href="#examples">Example intersections</a><a href="#limits">What it does not do yet</a><a href="#glossary">Aimsun glossary</a>
+</nav>
+
+<section id="overview">
+<h2>Overview</h2>
+<p>The simulation lives in a plugin for Unreal Engine. Every vehicle and pedestrian is an entity in Unreal's Mass framework, which keeps the per-agent data in flat arrays so tens of thousands of agents update each frame. Everything you author is stored in one network asset per level: road geometry, intersections, control plans, demand zones and origin-destination (OD) matrices.</p>
+<div class="pipe">
+  <div><b>1. Network</b><small>Draw roads (Aimsun sections), join them into nodes, set lanes, pockets, footways and bus stops.</small></div>
+  <div><b>2. Control</b><small>One control plan per node: fixed-time, actuated, or unsignalized with give-way rules.</small></div>
+  <div><b>3. Demand</b><small>Zones on boundary legs, OD matrices per vehicle class and named period, or turn counts estimated to OD.</small></div>
+  <div><b>4. Simulation</b><small>Poisson arrivals, shortest-path routing, IDM+ car following, LMRS lane changes, gap acceptance.</small></div>
+  <div><b>5. Visualisation</b><small>Instanced City Sample vehicles and animated pedestrians, signal heads, driver and eye views for review.</small></div>
+</div>
+<p>Authoring happens in a <b>Traffic Tool</b> editor mode. Its panel holds the tools (Select, Path, Linear, Auto, Node, Lanes, Zone, Connect, Cut, Signal, Transit), three buttons that open the dialogs covered below (<b>Edit Signal Timing</b>, <b>Edit Demand</b>, <b>Switch Demand</b>), a Properties section for the selected element, and simulation controls (speed multiplier).</p>
+<div class="callout"><b>Units.</b> The data is stored in centimetres and seconds. The dialogs show metres, km/h and seconds where a unit is shown; the signal timing boxes are all seconds even where no unit is printed.</div>
+</section>
+
+<section id="network">
+<h2>Network model</h2>
+<p>The network mirrors Aimsun's vocabulary with a few simplifications. A road is a <b>Path</b> (an Aimsun section). Lanes are not separate objects; a Path has a lane count and lane 0 is the leftmost lane in the direction of travel. Intersections are <b>Nodes</b>, and each turning movement is a <b>Connection</b> with its own short connector Path through the box.</p>
+<div class="tw"><table class="t">
+<thead><tr><th>Element</th><th>What it is</th><th>Key fields</th></tr></thead>
+<tbody>
+<tr><td>Path</td><td>One directional road leg (Aimsun section). Linear or auto-bezier points.</td><td>Lane count, lane width (350 cm default), speed (km/h), reserved lane count and class</td></tr>
+<tr><td>Pocket</td><td>Partial-length lane on a Path: turn pockets at the downstream end, merge pockets at the upstream end.</td><td>Left/right pocket lengths, inner to outer</td></tr>
+<tr><td>Node</td><td>An intersection. Always owns a control plan and a turn-volume set.</td><td>Location, control plan, turn volumes</td></tr>
+<tr><td>Connection (turn)</td><td>One turning movement, classified Through, Left or Right from the plan angle (±35° is Through). Optional lane-to-lane mapping.</td><td>Give way None/Yield/Stop, Allowed on red, Visibility (m)</td></tr>
+<tr><td>Turn connector</td><td>The curve vehicles drive through the box. Speed inherits the incoming leg, capped by bend radius.</td><td>Derived</td></tr>
+<tr><td>Footway</td><td>An undirected walking strip. Where it crosses a road it becomes a crossing; within 15 m of a leg end the crossing belongs to that node's signal, otherwise it is mid-block.</td><td>Width, Crossing None/Full, insets (150 cm)</td></tr>
+<tr><td>Bus stop</td><td>Aimsun stop types on a leg.</td><td>Normal / Bay / Terminal, stop line, platform 15 m, dwell 20 s, side</td></tr>
+<tr><td>Zone (centroid)</td><td>A demand zone attached to one or more boundary legs. Traffic splits across legs by weight.</td><td>Name, connected Paths, origin/destination flags</td></tr>
+<tr><td>Demand matrix</td><td>One OD matrix per vehicle class per named period. Sparse cells in veh/h (persons/h for pedestrians).</td><td>Class, period name, cells</td></tr>
+</tbody></table></div>
+<h3>How a node is built</h3>
+<ul>
+<li>Select two or more legs and run the Node tool. Each leg's node-facing end is whichever end is nearer the other legs.</li>
+<li>Every incoming/outgoing pair becomes a turn except U-turns (legs more than 160° apart, or a leg's own opposite direction).</li>
+<li>Each turn gets a three-point curved connector; left and right turns use the outer lane by default. The Lanes tool edits the lane-to-lane mapping by dragging lane lines.</li>
+<li>New turns default to: Left = Yield, everything else = None, visibility 50 m. A default control plan is seeded at the same time (see below).</li>
+<li>The Cut tool slices the roads it crosses and builds an unsignalized node with lane-to-lane through movements.</li>
+</ul>
+</section>
+
+<section id="signals">
+<h2>Signal timing dialog</h2>
+<p>Select a node and press <b>Edit Signal Timing</b>. The dialog is a dockable tab with a header row, a <b>Timing</b> tab (cycle dial, signal group grid, turn assignment) and a <b>Priority</b> tab (give-way rules per turn). Three control types exist:</p>
+<div class="tw"><table class="t">
+<thead><tr><th>Type</th><th>How it runs</th><th>Fields that matter</th></tr></thead>
+<tbody>
+<tr><td>Fixed</td><td>Pretimed cycle. Green state is computed from the clock as (time − offset) mod cycle, so coordinated offsets along a corridor just work.</td><td>Cycle, Offset, per group Start and Duration, Yellow, All-red</td></tr>
+<tr><td>Actuated</td><td>Groups run in list order. Each holds at least Min Green, gaps out after Extension seconds with no vehicle within 30 m of the stop bar, and is forced off at Max Green. No phase skipping. Pedestrian recall stretches min green to 7 s WALK plus clearance at 1.1 m/s.</td><td>Min Green, Max Green, Extension, Yellow, All-red (Start, Duration and Offset are ignored)</td></tr>
+<tr><td>Unsignalized</td><td>Every movement runs on its own give-way rule. All-way stop, two-way stop and yield control are Priority-tab presets, not separate types.</td><td>Give way, Visibility, Conflicts column</td></tr>
+</tbody></table></div>
+<p>A <b>signal group</b> is a set of turns (and crossings) that are green together, what Aimsun calls a signal group and NEMA calls a phase. A turn may belong to several groups and is green whenever any of them is green. That is how a protected-permissive left is expressed: the left sits in a short protected group and again in the through group, where the Yield rule makes it permissive. A non-left turn shared by two consecutive groups carries its green across the transition instead of showing yellow.</p>
+
+<h3>Walkthrough 1 · Fixed-time plan with protected-permissive north-south lefts</h3>
+<p>A four-leg intersection, two lanes per direction, with footways on every leg. The target plan is a 90 s cycle: a 12 s protected north-south left lead, 28 s north-south, 35 s east-west, with 3 s yellow and 2 s all-red between groups. Use the controls under the stage to step through, or let it play.</p>
+<div class="stage" id="stageA">
+  <div class="stage-head"><b>Signal Timing</b><span class="sub">dialog as the plan is authored · viewport shows the heads running the current plan</span></div>
+  <div class="stage-body">
+    <div class="ue" data-role="dialog"></div>
+    <div class="view"><h4>Viewport · signal heads and pedestrian displays</h4><svg data-role="xsvg" viewBox="0 0 400 400" role="img" aria-label="Plan view of the intersection with signal states"></svg>
+      <div class="legend"><span><i style="background:var(--sig-g)"></i>green</span><span><i style="background:var(--sig-y)"></i>yellow / flashing yellow arrow</span><span><i style="background:var(--sig-r)"></i>red</span><span><i style="background:#fff;border:1px solid #888"></i>walk</span><span><i style="background:var(--warn)"></i>don't walk</span></div>
+    </div>
+  </div>
+  <div class="ctl" data-role="ctl"></div>
+</div>
+
+<h3>Walkthrough 2 · Actuated plan on a main street with two side streets</h3>
+<p>A fictional main street crossing a pair of side streets, with protected main-street lefts. A NEMA dual-ring plan has to be folded into a single ring of three groups, which is all the dialog supports today. Switching the type to Actuated greys out Start, Duration and Offset and reveals Min Green, Max Green and Extension. The viewport run below is a simulated sequence: each group holds its minimum, then either gaps out or maxes out.</p>
+<div class="stage" id="stageB">
+  <div class="stage-head"><b>Signal Timing</b><span class="sub">actuated · Min 5 s, Extension 3 s, Yellow 3 s, All-red 2 s</span></div>
+  <div class="stage-body">
+    <div class="ue" data-role="dialog"></div>
+    <div class="view"><h4>Viewport · Main St runs east–west</h4><svg data-role="xsvg" viewBox="0 0 400 400" role="img" aria-label="Plan view of the main street intersection"></svg>
+      <div class="legend"><span><i style="background:var(--sig-g)"></i>green</span><span><i style="background:var(--sig-y)"></i>yellow / FYA</span><span><i style="background:var(--sig-r)"></i>red</span><span><i style="background:#fff;border:1px solid #888"></i>walk</span></div>
+    </div>
+  </div>
+  <div class="ctl" data-role="ctl"></div>
+</div>
+
+<h3>What the dial is telling you</h3>
+<ul>
+<li>Twelve o'clock is t = 0 and time runs clockwise; one revolution is one cycle. Each group is an arc: green, then yellow, then all-red. Groups that overlap in time drop to an inner track.</li>
+<li>Drag an arc body to move its start, the leading handle to change the start while keeping the end, the trailing handle to change the duration. Drags snap to 1 s. The hub is the cycle length box; the thin inner ring is the offset.</li>
+<li>Rim ticks step by 5, 10, 15, 20, 30, 60, 120 or 300 s, whichever keeps at most 18 ticks.</li>
+<li>A thin green stripe inside a band marks green carry-over into the next group; a white stripe marks a WALK that carries over.</li>
+<li>Copy and Paste move timing between nodes but not turn membership. The dialog has its own undo (Ctrl+Z / Ctrl+Y).</li>
+</ul>
+<div class="callout"><b>Signal heads.</b> Heads are placed by hand with the Signal tool as Through (3-section), Left (4-section, protected arrow or flashing yellow arrow) or Walk displays. Each head binds itself to the node's plan by leg and group; a Describe Binding button reports what it bound to.</div>
+</section>
+
+<section id="demand">
+<h2>Demand and OD dialog</h2>
+<p>Demand is OD based. You create zones with the Zone tool on the boundary legs, then press <b>Edit Demand</b>. The dialog shows a totals line, two content tabs (<b>OD Matrix</b> and <b>Turns</b>), a row of vehicle-class tabs (Car, Motorcycle, Bicycle, Truck, Bus, Train, Pedestrian, plus custom classes) and a row of named <b>period</b> tabs shared by every class. Each class holds one matrix per period, in veh/h (persons/h for pedestrians).</p>
+<div class="stage" id="stageC">
+  <div class="stage-head"><b>Edit Demand</b><span class="sub">OD matrix authoring · viewport shows zones, the selected route, and arrivals once running</span></div>
+  <div class="stage-body">
+    <div class="ue" data-role="dialog"></div>
+    <div class="view"><h4>Viewport · zones on the four boundary legs</h4><svg data-role="xsvg" viewBox="0 0 400 400" role="img" aria-label="Plan view with demand zones"></svg>
+      <div class="legend"><span><i style="background:var(--link)"></i>selected OD route</span><span><i style="background:#555"></i>vehicle</span><span><i style="background:var(--sector)"></i>zone marker</span></div>
+    </div>
+  </div>
+  <div class="ctl" data-role="ctl"></div>
+</div>
+<h3>How the numbers become traffic</h3>
+<ul>
+<li><b>Arrivals</b> are Poisson at the total authored rate: class and origin are drawn together, then the destination by the cell's share. Each (class, origin) has a virtual entry queue like Aimsun's; a full queue drops arrivals and logs a warning.</li>
+<li><b>Vehicle models</b> per class are a project-wide list (City Sample cars, trucks with trailers, buses, cyclists, 30 pedestrian types). One model of the class is picked uniformly at random. There is no per-zone or per-period mix.</li>
+<li><b>Routing</b> uses a precomputed shortest-distance table per destination leg. At each node the vehicle picks among routes within 1.3× of the best, so parallel streets share load. Routing is by distance, not travel time, and does not react to congestion.</li>
+<li><b>Periods</b> have a name only. Which period is live is chosen by name at run time, from the Switch Demand panel, a Blueprint call, or the console. Each period keeps its own population, and a network is warmed up the first time a period is selected so it starts populated.</li>
+<li><b>Turn counts</b> are a convenience input. Only the OD matrix is simulated; Estimate OD writes the matrix from the counts (Proportional, or Adjusted to routing with a damped iteration that reports RMSE).</li>
+</ul>
+</section>
+
+<section id="models">
+<h2>Driver and pedestrian models</h2>
+<div class="tw"><table class="t">
+<thead><tr><th>Behaviour</th><th>Model</th><th>Default parameters</th></tr></thead>
+<tbody>
+<tr><td>Car following</td><td>IDM+ (Schakel, Knoop &amp; van Arem 2010)</td><td class="num">a 1.25 m/s², b 2.09 m/s², T 1.5 s, s₀ 2 m, look-ahead 150 m, hard limit 4 m/s²</td></tr>
+<tr><td>Lane change</td><td>LMRS desire model with a MOBIL-style safety check; mandatory changes for route and pockets</td><td class="num">free 0.365 / synchronise 0.577 / cooperate 0.788; route look-ahead 240 m; 3 s manoeuvre; 10 s cooldown</td></tr>
+<tr><td>Gap acceptance</td><td>Aimsun-style conflict points within the turn's visibility distance; stop and turn-on-red require a full stop; equal priority is first-come, ties by right-hand rule; don't-block-the-box</td><td class="num">critical gap 3 s shrinking to 1 s over 20 s of waiting; visibility 50 m</td></tr>
+<tr><td>Yellow decision</td><td>Stop if a stop is possible after a reaction time at a comfortable deceleration, otherwise commit and clear through yellow and all-red</td><td class="num">reaction 1 s, deceleration 3 m/s²</td></tr>
+<tr><td>Signal state</td><td>Fixed: (t − offset) mod cycle. Actuated: min / gap-out / max-out state machine with 30 m stop-bar detection and pedestrian recall</td><td class="num">detection 30 m; WALK 7 s; clearance at 1.1 m/s</td></tr>
+<tr><td>Pedestrians</td><td>Boid-style crowd inside footway strips; Dijkstra over the footway graph with crossings penalised; wait at closed crossings; vehicles yield to anyone on a crossing within their lane span</td><td class="num">1 m standoff; optional behaviours in Project Settings</td></tr>
+<tr><td>Transit</td><td>Normal stop in lane, Bay pulls out (12 m ramps), Terminal ends the trip; dwell per stop</td><td class="num">dwell 20 s; platform 15 m</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="examples">
+<h2>Example intersections in the repository</h2>
+<div>
+<h3>TrafficShowcase (five sites in a row)</h3>
+<div class="tw"><table class="t">
+<thead><tr><th>Site</th><th>Control</th><th>Plan</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>All-way stop</td><td>1×1 lanes, 40 km/h, every movement Stop</td></tr>
+<tr><td>2</td><td>Two-way stop</td><td>Minor N–S Stop; major E–W two lanes, lefts Yield</td></tr>
+<tr><td>3</td><td>Fixed, 2-phase</td><td class="num">70 s cycle: N–S 30 s, E–W 30 s, permissive lefts, right on red</td></tr>
+<tr><td>4</td><td>Fixed, protected-permissive</td><td class="num">90 s: N–S lefts 12 s, N–S 28 s, E–W 35 s, footways</td></tr>
+<tr><td>5</td><td>Actuated, lead-lag + overlap</td><td class="num">NB lead 14 s with EB-right overlap, N–S 26 s, E–W 30 s; Min = max(6, 0.4·g), Max 1.8·g, Ext 2.5 s</td></tr>
+</tbody></table></div>
+<p>Yellow 3 s and all-red 2 s throughout. Car demand at every site; 90 persons/h pedestrian demand per pair at sites 4 and 5. Signal heads at sites 3 to 5. This is synthetic test content, not a client site; every number on this page is illustrative.</p>
+</div>
+</div>
+</section>
+
+<section id="limits">
+<h2>What it does not do yet</h2>
+<p>Read this before promising anything to a client. These are gaps as of 21 October 2026, not design decisions.</p>
+<ul>
+<li><b>No measures of effectiveness.</b> There are no throughput counters, travel times, delay, queue lengths or level of service, and no CSV export. A developer stall log and debug draws exist. The demand totals line shows authored volumes, not measured.</li>
+<li><b>No time-of-day scheduling.</b> Periods are names; someone switches them. There are no arrival profiles within a period and no fixed-headway option.</li>
+<li><b>Actuated control is simplified.</b> Detection is a fixed 30 m zone at the stop bar, there is no detector placement, no phase skipping, no ring-and-barrier display; dual-ring plans must be folded into one ring.</li>
+<li><b>No roundabouts</b> and no stage diagram other than the cycle dial.</li>
+<li><b>Routing is distance based</b> and not congestion aware; no dynamic traffic assignment.</li>
+<li><b>Vehicle mix is per class, project wide</b>, not per zone or per period.</li>
+<li><b>Transit</b> has bus stops but no transit lines or schedules.</li>
+</ul>
+</section>
+
+<section id="glossary">
+<h2>Aimsun to simulation glossary</h2>
+<div class="tw"><table class="t">
+<thead><tr><th>Aimsun</th><th>Here</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Section</td><td>Path</td><td>One direction per Path; lane 0 is leftmost</td></tr>
+<tr><td>Node / junction</td><td>Node (intersection)</td><td>Built from selected legs</td></tr>
+<tr><td>Turn</td><td>Connection + turn connector</td><td>Through / Left / Right by angle</td></tr>
+<tr><td>Signal group</td><td>Signal group</td><td>Set of turns and crossings green together</td></tr>
+<tr><td>Control plan, interphase</td><td>Control plan, yellow + all-red transition</td><td>One plan per node, named "Control Plan 1"</td></tr>
+<tr><td>Give-way / stop</td><td>Priority tab: None / Yield / Stop</td><td>Per turn, with visibility distance</td></tr>
+<tr><td>Centroid</td><td>Zone (centroid)</td><td>Connected to boundary legs with weights</td></tr>
+<tr><td>OD matrix, traffic demand</td><td>Demand matrix per class per period</td><td>Periods have names, not times</td></tr>
+<tr><td>Reserved lane</td><td>Reserved lanes + class</td><td>Compulsory, outer right lanes</td></tr>
+<tr><td>Bus stop (normal / bay / terminal)</td><td>Bus stop, same types</td><td>No transit lines yet</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>Prepared for Parametrix transportation staff. Source: the traffic plugin's editor and simulation code as of 21 October 2026. The dialogs shown are faithful mock-ups, not screenshots; field names and defaults match the editor.</footer>
+</main>
+
+<script>
+(function(){
+'use strict';
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const COL = {g:css('--sig-g'), y:css('--sig-y'), r:css('--sig-r'), rd:css('--sig-rdark'), off:css('--sig-off')};
+
+/* ---------- geometry shared by every viewport ---------- */
+const LEGS = ['N','E','S','W'];
+const ROT = {N:0,E:90,S:180,W:270};
+const DEST = {N:{L:'E',T:'S',R:'W'}, S:{L:'W',T:'N',R:'E'}, E:{L:'S',T:'W',R:'N'}, W:{L:'N',T:'E',R:'S'}};
+const TNAME = {L:'Left',T:'Through',R:'Right'};
+// approach-local paths (approach from the north, driving south), rotated per leg
+const LPATH = {T:'M179,-14 V414', L:'M193,-14 V160 Q193,207 240,207 H414', R:'M179,-14 V150 Q179,179 150,179 H-14'};
+const ALLTURNS = []; LEGS.forEach(l=>['L','T','R'].forEach(k=>ALLTURNS.push(l+'-'+k)));
+const turnNo = id => ALLTURNS.indexOf(id)+1;
+const turnLabel = (id, legNames) => { const [l,k]=id.split('-'); return `Turn ${turnNo(id)} - ${TNAME[k]} (${legNames[l]} -> ${legNames[DEST[l][k]]})`; };
+
+function buildIntersection(svg, opt){
+  const ns='http://www.w3.org/2000/svg';
+  const el=(n,a,p)=>{const e=document.createElementNS(ns,n);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
+  svg.innerHTML='';
+  el('rect',{x:0,y:0,width:400,height:400,fill:'#2f3a2f'});
+  el('rect',{x:172,y:0,width:56,height:400,fill:'#4a4a4a'});
+  el('rect',{x:0,y:172,width:400,height:56,fill:'#4a4a4a'});
+  const legs={}, heads={}, peds={}, dots={}, lens={}, paths={};
+  LEGS.forEach(L=>{
+    const g=el('g',{transform:`rotate(${ROT[L]} 200 200)`});
+    legs[L]=g;
+    // centre line + lane dash (local: leg runs from y=0 to 172)
+    el('line',{x1:200,y1:0,x2:200,y2:172,stroke:'#e8c54a',"stroke-width":2},g);
+    el('line',{x1:186,y1:0,x2:186,y2:150,stroke:'#ddd',"stroke-width":1,"stroke-dasharray":'8 8'},g);
+    el('line',{x1:214,y1:0,x2:214,y2:150,stroke:'#ddd',"stroke-width":1,"stroke-dasharray":'8 8'},g);
+    if(opt.crosswalks){
+      for(let i=0;i<7;i++) el('rect',{x:174+i*8,y:150,width:5,height:14,fill:'#eee'},g);
+      el('line',{x1:172,y1:146,x2:200,y2:146,stroke:'#fff',"stroke-width":3},g);
+      // footway strips beside the leg
+      el('rect',{x:160,y:0,width:10,height:150,fill:'#8a8a80'},g); el('rect',{x:230,y:0,width:10,height:150,fill:'#8a8a80'},g);
+    } else {
+      el('line',{x1:172,y1:166,x2:200,y2:166,stroke:'#fff',"stroke-width":3},g);
+    }
+    // turn paths (invisible, used for dot positions)
+    ['L','T','R'].forEach(k=>{
+      const p=el('path',{d:LPATH[k],fill:'none',stroke:'none'},g);
+      paths[L+'-'+k]=p; lens[L+'-'+k]=p.getTotalLength();
+    });
+    if(opt.heads){
+      const hl=el('g',{},g);
+      heads[L+'-L']=el('circle',{cx:156,cy:142,r:6,fill:COL.r,stroke:'#111',"stroke-width":1},hl);
+      el('path',{d:'M159,142 H153 M156,139 L153,142 L156,145',stroke:'#fff',"stroke-width":1.4,fill:'none'},hl);
+      heads[L+'-T']=el('circle',{cx:156,cy:158,r:6,fill:COL.r,stroke:'#111',"stroke-width":1},hl);
+      heads[L+'-R']=el('circle',{cx:156,cy:174,r:4,fill:COL.r,stroke:'#111',"stroke-width":1},hl);
+      el('path',{d:'M153,174 H159 M156,171 L159,174 L156,177',stroke:'#fff',"stroke-width":1.1,fill:'none'},hl);
+      if(opt.crosswalks) peds[L]=el('rect',{x:244,y:151,width:10,height:12,rx:1,fill:css('--warn'),stroke:'#111'},g);
+    }
+    if(opt.zones){
+      const z=el('g',{},g);
+      el('line',{x1:172,y1:22,x2:150,y2:22,stroke:'#999',"stroke-dasharray":'3 3'},z);
+      el('circle',{cx:150,cy:22,r:11,fill:css('--sector'),stroke:'#333',"stroke-width":1.5},z);
+    }
+    // vehicle dots
+    const cnt={T:3,L:1,R:1};
+    ['L','T','R'].forEach(k=>{
+      const id=L+'-'+k; dots[id]=[];
+      for(let i=0;i<cnt[k];i++){
+        const c=el('circle',{r:4.2,fill:'#dcdcdc',stroke:'#222',"stroke-width":.8,visibility:'hidden'},g);
+        dots[id].push({el:c,pos:-20-i*40-Math.random()*60,on:false});
+      }
+    });
+  });
+  // labels (drawn unrotated so text stays upright)
+  const lab={};
+  const LP={N:[200,14,'middle'],S:[200,392,'middle'],E:[394,196,'end'],W:[6,196,'start']};
+  LEGS.forEach(L=>{ lab[L]=el('text',{x:LP[L][0],y:LP[L][1],"text-anchor":LP[L][2],fill:'#fff',"font-size":11,"font-family":'Assistant, sans-serif',"font-weight":600,"paint-order":'stroke',stroke:'#222',"stroke-width":3},svg); lab[L].textContent=opt.legNames[L]; });
+  if(opt.zones){
+    const ZP={N:[150,46,'middle'],S:[250,396,'middle'],E:[392,140,'end'],W:[8,234,'start']};
+    LEGS.forEach(L=>{ const t=el('text',{x:ZP[L][0],y:ZP[L][1],"text-anchor":ZP[L][2],fill:'#fff',"font-size":10,"font-family":'Assistant, sans-serif',"paint-order":'stroke',stroke:'#222',"stroke-width":3}); t.textContent='Zone '+opt.legNames[L]; });
+  }
+  const routeEl=el('path',{d:'',fill:'none',stroke:css('--link'),"stroke-width":6,"stroke-linecap":'round',opacity:.85,visibility:'hidden'});
+  const hiEl=el('path',{d:'',fill:'none',stroke:'#4da3ff',"stroke-width":5,"stroke-dasharray":'10 6',opacity:.9,visibility:'hidden'});
+  function setRoute(id){ if(!id){routeEl.setAttribute('visibility','hidden');return;} const [L]=id.split('-'); routeEl.setAttribute('d',LPATH[id.split('-')[1]]); routeEl.setAttribute('transform',`rotate(${ROT[L]} 200 200)`); routeEl.setAttribute('visibility','visible'); }
+  function setHighlight(ids){ if(!ids||!ids.length){hiEl.setAttribute('visibility','hidden');return;} hiEl.setAttribute('visibility','visible'); hiEl.setAttribute('d',ids.map(id=>{const [L,k]=id.split('-');return LPATH[k];}).join(' ')); hiEl.__ids=ids; }
+  // highlight needs rotation per id: draw as several uses instead
+  const hiGroup=el('g',{}); hiEl.remove();
+  const hiParts={}; ALLTURNS.forEach(id=>{ const [L,k]=id.split('-'); hiParts[id]=el('path',{d:LPATH[k],transform:`rotate(${ROT[L]} 200 200)`,fill:'none',stroke:'#4da3ff',"stroke-width":5,"stroke-dasharray":'10 6',opacity:.9,visibility:'hidden'},hiGroup); });
+  const setHi = ids => { const s=new Set(ids||[]); ALLTURNS.forEach(id=>hiParts[id].setAttribute('visibility',s.has(id)?'visible':'hidden')); };
+  const STOP = opt.crosswalks?146:166; // local y of the stop bar
+  const OPP={N:'S',S:'N',E:'W',W:'E'}, GAP=13;
+  const laneOf = id => id[0] + (id.endsWith('-L')?'i':'o'); // lefts own the inner lane, through + right share the outer
+  function tick(dt, stateOf, rateOf){
+    const v=70*dt, lanes={};
+    for(const id in dots){ const st=stateOf(id), rate=rateOf?rateOf(id):1;
+      dots[id].forEach(d=>{ d.id=id; d.st=st; if(rate<=0){ d.el.setAttribute('visibility','hidden'); d.pos=-30; return; } d.rate=rate; (lanes[laneOf(id)]=lanes[laneOf(id)]||[]).push(d); }); }
+    for(const key in lanes){
+      const arr=lanes[key].sort((x,y)=>y.pos-x.pos); let leader=null;
+      arr.forEach(d=>{
+        let limit=leader? leader.pos-GAP : Infinity;
+        if(d.pos < STOP){
+          let stop = d.st==='red' || (d.st==='yellow' && d.pos < STOP-15); // yellow rule: stop if you still can
+          if(d.st==='fya'){ const opp=dots[OPP[d.id[0]]+'-T']||[]; if(opp.some(o=>o.pos>STOP-50 && o.pos<STOP+110)) stop=true; } // permissive left yields to opposing through
+          if(stop) limit=Math.min(limit, STOP-2);
+        }
+        d.pos=Math.min(d.pos+v, Math.max(limit, d.pos));
+        if(d.pos>lens[d.id]+10){ const tail=Math.min(...arr.map(o=>o.pos)); d.pos=Math.min(-30-Math.random()*180/Math.max(.3,d.rate), tail-GAP-10); }
+        leader=d;
+        if(d.pos<0){ d.el.setAttribute('visibility','hidden'); return; }
+        const pt=paths[d.id].getPointAtLength(Math.min(lens[d.id],d.pos));
+        d.el.setAttribute('cx',pt.x); d.el.setAttribute('cy',pt.y); d.el.setAttribute('visibility','visible');
+      });
+    }
+  }
+  return {heads,peds,dots,tick,setRoute,setHi,lab};
+}
+
+/* ---------- player ---------- */
+function makePlayer(stage, steps, onStep, onFrame){
+  const ctl=stage.querySelector('[data-role=ctl]');
+  ctl.innerHTML='<button data-a="prev" aria-label="Previous step">&lsaquo;</button><button data-a="play"></button><button data-a="next" aria-label="Next step">&rsaquo;</button><div class="dots"></div><span class="stepno"></span><div class="cap"></div>';
+  const dots=ctl.querySelector('.dots'), cap=ctl.querySelector('.cap'), no=ctl.querySelector('.stepno'), play=ctl.querySelector('[data-a=play]');
+  steps.forEach((s,i)=>{const d=document.createElement('i');d.addEventListener('click',()=>go(i,true));dots.appendChild(d);});
+  let idx=-1, playing=!RM, hold=0, last=performance.now(), t=0;
+  function go(i,manual){ idx=(i+steps.length)%steps.length; hold=0; cap.innerHTML=steps[idx].cap; no.textContent=`Step ${idx+1} of ${steps.length}`; [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===idx)); onStep(steps[idx],idx); if(manual){playing=false;setPlay();} }
+  function setPlay(){ play.textContent=playing?'❚❚':'▶'; play.setAttribute('aria-label',playing?'Pause':'Play'); }
+  ctl.querySelector('[data-a=prev]').addEventListener('click',()=>go(idx-1,true));
+  ctl.querySelector('[data-a=next]').addEventListener('click',()=>go(idx+1,true));
+  play.addEventListener('click',()=>{playing=!playing;setPlay();});
+  setPlay(); go(0);
+  function frame(now){
+    const dt=Math.min(.1,(now-last)/1000); last=now; t+=dt;
+    if(playing){ hold+=dt; if(hold>(steps[idx].hold||6)) go(idx+1); }
+    onFrame(dt,t);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  return {go};
+}
+
+/* ---------- signal maths ---------- */
+function phaseOf(g,t,yel,red,cycle){ const u=((t-g.start)%cycle+cycle)%cycle; if(u<g.dur)return'G'; if(u<g.dur+yel)return'Y'; if(u<g.dur+yel+red)return'R'; return null; }
+function groupStates(S,t){ // returns {id:'G'|'Y'|'R'|null}
+  const out={}; S.groups.forEach(g=>out[g.id]=S.phaseOverride?S.phaseOverride(g):phaseOf(g,t,S.yellow,S.allred,S.cycle)); return out;
+}
+function turnState(S,id,gs){
+  if(S.type==='Unsignalized') return 'free';
+  const k=id.split('-')[1], L=id.split('-')[0];
+  let s='red', inY=false;
+  const mine=S.groups.filter(g=>g.turns.includes(id));
+  for(const g of mine){ const p=gs[g.id]; if(p==='G') return 'green'; if(p==='Y') inY=true;
+    if((p==='Y'||p==='R') && k!=='L'){ // carry-over into the consecutive group
+      const i=S.groups.indexOf(g), nx=S.groups[(i+1)%S.groups.length]; if(nx!==g && nx.turns.includes(id)) return 'green'; } }
+  if(inY) return 'yellow';
+  if(k==='L' && (S.rules[id]||'None')==='Yield'){ const th=L+'-T'; const tg=S.groups.find(g=>g.turns.includes(th)&&gs[g.id]==='G'); if(tg) return 'fya'; }
+  return s;
+}
+function crossState(S,leg,gs,t){ // 'walk'|'clear'|'dont'
+  const gl=S.groups.filter(g=>(g.cross||[]).includes(leg));
+  for(const g of gl){ if(gs[g.id]==='G'){ if(S.type==='Fixed'){ const u=((t-g.start)%S.cycle+S.cycle)%S.cycle; return (g.dur-u<5)?'clear':'walk'; } return S.actClear&&S.actClear(g)?'clear':'walk'; } }
+  return 'dont';
+}
+
+/* ---------- dial ---------- */
+function polar(cx,cy,r,a){ const q=(a-90)*Math.PI/180; return [cx+r*Math.cos(q), cy+r*Math.sin(q)]; }
+function arc(cx,cy,r0,r1,a0,a1){ if(a1-a0>=360) a1=a0+359.99; const [x0,y0]=polar(cx,cy,r1,a0),[x1,y1]=polar(cx,cy,r1,a1),[x2,y2]=polar(cx,cy,r0,a1),[x3,y3]=polar(cx,cy,r0,a0); const lg=a1-a0>180?1:0; return `M${x0},${y0} A${r1},${r1} 0 ${lg} 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 ${lg} 0 ${x3},${y3} Z`; }
+function dialSVG(D,S,t,showHand){
+  const cx=130,cy=130, cyc=Math.max(1,D.cycle), a=s=>s/cyc*360;
+  // track assignment
+  const span=g=>[g.start, g.start+g.dur+S.yellow+S.allred];
+  const ov=(x,y)=>{ const [a0,a1]=span(x),[b0,b1]=span(y); const n=(s,e,c)=>{ const r=[]; for(let k=-1;k<=1;k++) r.push([s+k*c,e+k*c]); return r; }; return n(a0,a1,cyc).some(([s,e])=>s<b1&&b0<e); };
+  const tracks=[]; const trackOf={};
+  D.groups.forEach(g=>{ let k=0; while(tracks[k]&&tracks[k].some(o=>ov(o,g))) k++; (tracks[k]=tracks[k]||[]).push(g); trackOf[g.id]=k; });
+  const R=[[86,114],[62,84],[40,60]];
+  let s=`<svg viewBox="0 0 260 260"><circle cx="${cx}" cy="${cy}" r="118" fill="#141414" stroke="#3b3b3b"/>`;
+  // ticks
+  const steps=[5,10,15,20,30,60,120,300]; const st=steps.find(x=>cyc/x<=18)||300;
+  for(let v=0;v<cyc;v+=st){ const [x0,y0]=polar(cx,cy,118,a(v)),[x1,y1]=polar(cx,cy,113,a(v)),[tx,ty]=polar(cx,cy,124,a(v)); s+=`<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="#777"/><text x="${tx}" y="${ty+3}" font-size="8" fill="#9a9a9a" text-anchor="middle" font-family="Assistant, sans-serif">${v}</text>`; }
+  D.groups.forEach(g=>{
+    const [r0,r1]=R[Math.min(2,trackOf[g.id])]; const A=a(g.start), B=a(g.start+g.dur), C=a(g.start+g.dur+S.yellow), E=a(g.start+g.dur+S.yellow+S.allred);
+    const sel=g.id===S.selected;
+    if(sel) s+=`<path d="${arc(cx,cy,r0-3,r1+3,A,E)}" fill="none" stroke="#4da3ff" stroke-width="2"/>`;
+    s+=`<path d="${arc(cx,cy,r0,r1,A,B)}" fill="${COL.g}" stroke="#111" stroke-width=".6"/>`;
+    if(S.yellow>0) s+=`<path d="${arc(cx,cy,r0,r1,B,C)}" fill="${COL.y}" stroke="#111" stroke-width=".6"/>`;
+    if(S.allred>0) s+=`<path d="${arc(cx,cy,r0,r1,C,E)}" fill="${COL.rd}" stroke="#111" stroke-width=".6"/>`;
+    if(g.carry) s+=`<path d="${arc(cx,cy,r1-4,r1-2,B,E)}" fill="#7CFC7C"/>`;
+    // label
+    const m=(A+B)/2, [lx,ly]=polar(cx,cy,(r0+r1)/2,m);
+    if(g.dur/cyc>0.07) s+=`<text x="${lx}" y="${ly+3}" font-size="8" fill="#fff" text-anchor="middle" font-family="Assistant, sans-serif" font-weight="600">${g.name}</text>`;
+    // handles
+    [A,E].forEach(h=>{ const [hx,hy]=polar(cx,cy,(r0+r1)/2,h); s+=`<circle cx="${hx}" cy="${hy}" r="2.6" fill="#eee" stroke="#222" stroke-width=".6"/>`; });
+  });
+  // offset ring
+  if(S.type==='Fixed' && S.offset>0) s+=`<path d="${arc(cx,cy,30,33,0,a(S.offset))}" fill="#5aa0ff"/>`;
+  // hand
+  if(showHand){ const [hx,hy]=polar(cx,cy,118,a(t%cyc)); s+=`<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#fff" stroke-width="1.2" opacity=".85"/>`; }
+  // hub
+  s+=`<circle cx="${cx}" cy="${cy}" r="26" fill="#151515" stroke="${S.hubHot?'#4da3ff':'#3b3b3b'}" stroke-width="${S.hubHot?2:1}"/><text x="${cx}" y="${cy+1}" font-size="13" fill="#fff" text-anchor="middle" font-family="Assistant, sans-serif" font-weight="600">${Math.round(D.cycle*10)/10}</text><text x="${cx}" y="${cy+12}" font-size="7" fill="#9a9a9a" text-anchor="middle" font-family="Assistant, sans-serif">cycle s</text>`;
+  return s+'</svg>';
+}
+
+/* ---------- signal dialog renderer ---------- */
+function renderSignalDialog(root,S,prevS){
+  const act=S.type==='Actuated', fixed=S.type==='Fixed', unsig=S.type==='Unsignalized';
+  const in_=(v,cls='')=>`<span class="in ${cls}">${v}</span>`;
+  let h=`<div class="tabbar"><span class="tab on">Signal Timing</span></div>
+  <div class="row"><label>Type:</label>${in_(S.type,'combo'+(S.hot==='type'?' hl':''))}<label>Cycle:</label><span>${Math.round(S.cycle*10)/10} secs</span><label>Offset:</label>${in_(S.offset,fixed?'':'dis')}
+   <div class="box"><b>Green to Red Transition</b><label>Yellow Time:</label>${in_(S.yellow)}<label>Red Time:</label>${in_(S.allred)}</div></div>
+  <div class="seg"><span class="${S.tab==='Timing'?'on':''} ${unsig?'dis':''}">Timing</span><span class="${S.tab==='Priority'?'on':''}">Priority</span></div>`;
+  if(S.tab==='Timing'){
+    h+=`<div class="cycle-wrap" data-role="dial"></div>`;
+    if(act && S.act) h+=`<div class="act-bar" data-role="actbar"></div>`;
+    h+=`<div class="split"><div class="panel"><table><thead><tr><th>Signal</th>${act?'':'<th>Start Time</th><th>Duration</th>'}${act?'<th>Min Green</th><th>Max Green</th><th>Extension</th>':''}<th>Carry-over</th></tr></thead><tbody>`;
+    S.groups.forEach(g=>{ h+=`<tr data-g="${g.id}" class="${g.id===S.selected?'sel':''}"><td><span class="sw" style="background:${COL.g}"></span><span class="${S.hot==='name-'+g.id?'in hl':''}">${g.name}</span></td>${act?'':`<td class="num" data-f="start"></td><td class="num" data-f="dur"></td>`}${act?`<td>${g.min}</td><td>${g.max}</td><td>${g.ext}</td>`:''}<td>${g.carry?'<span class="sw" style="background:#7CFC7C;width:4px"></span>':''}${g.walkCarry?'<span class="sw" style="background:#fff;width:3px"></span>':''}</td></tr>`; });
+    h+=`</tbody></table><div class="row" style="margin-top:6px"><span class="btn ${S.hot==='add'?'hot':''}">Add Signal Column</span><span class="btn ${S.hot==='remove'?'hot':''}">Remove Selected</span><span style="margin-left:auto" class="btn">Copy</span><span class="btn">Paste</span></div></div>`;
+    // turns panel
+    h+=`<div class="panel"><h5>Turns</h5>`;
+    const g=S.groups.find(x=>x.id===S.selected);
+    if(!g) h+=`<div class="dim" style="padding:6px 0">Select a signal group in the chart or grid above to assign its turns.</div>`;
+    else {
+      const pg=prevS&&prevS.groups.find(x=>x.id===g.id); const was=new Set(pg?pg.turns:[]); const wasC=new Set(pg?(pg.cross||[]):[]);
+      ALLTURNS.forEach(id=>{ const on=g.turns.includes(id); const others=S.groups.filter(x=>x!==g&&x.turns.includes(id)).map(x=>x.name); const r=S.rules[id]||'None';
+        h+=`<div class="tline ${S.hover===id?'hov':''}"><span class="cb ${on?'on':''} ${on&&!was.has(id)?'new':''}"></span>${turnLabel(id,S.legNames)}${r!=='None'?`<span class="tag">[${r}]</span>`:''}${S.onRed[id]?'<span class="tag">[on red]</span>':''}${others.length?`<span class="also">- also in ${others.join(', ')}</span>`:''}</div>`; });
+      if(S.crosswalks){ h+=`<h5 style="margin-top:6px">Crossings</h5>`;
+        LEGS.forEach(L=>{ const on=(g.cross||[]).includes(L); const owners=S.groups.filter(x=>(x.cross||[]).includes(L)).map(x=>x.name); h+=`<div class="tline"><span class="cb ${on?'on':''} ${on&&!wasC.has(L)?'new':''}"></span>Crossing over ${S.legNames[L]} leg - ${owners.length?owners.join(', '):'never'}${S.crossAuthored?'':' (default)'}</div>`; }); }
+    }
+    h+=`</div></div>`;
+  } else {
+    h+=`<div class="row"><label>Presets:</label><span class="btn ${S.hot==='aws'?'hot':''}">All-way stop</span><span class="btn">Stop on minor</span><span class="btn">Yield on minor</span><span class="btn ${S.hot==='perm'?'hot':''}">Permissive lefts</span></div>
+    <div class="panel"><table><thead><tr><th>Turn</th><th>Give way</th><th>On red</th><th>Visibility (m)</th><th>Conflicts</th></tr></thead><tbody>`;
+    ALLTURNS.forEach(id=>{ const r=S.rules[id]||'None', k=id.split('-')[1]; const conf = k==='L'?(r==='None'?'<span style="color:#e55">2 open</span>':'<span style="color:#5c5">2 resolved</span>'):k==='T'?'<span style="color:#5c5">1 resolved</span>':'none';
+      h+=`<tr><td>${turnLabel(id,S.legNames)}</td><td><span class="toggle3"><span class="${r==='None'?'on':''}">None</span><span class="${r==='Yield'?'on':''}">Yield</span><span class="${r==='Stop'?'on':''}">Stop</span></span></td><td><span class="cb ${S.onRed[id]?'on':''} ${S.onRed[id]&&prevS&&!prevS.onRed[id]?'new':''}" style="margin:0"></span></td><td>50</td><td>${conf}</td></tr>`; });
+    h+=`</tbody></table></div>`;
+  }
+  h+=`<div class="ok"><span class="btn ${S.hot==='ok'?'hot':''}">OK</span><span class="btn">Cancel</span></div>`;
+  root.innerHTML=h;
+}
+
+/* ---------- a signal scene ---------- */
+function signalScene(stageId, cfg, steps){
+  const stage=document.getElementById(stageId), dlg=stage.querySelector('[data-role=dialog]'), svg=stage.querySelector('[data-role=xsvg]');
+  const X=buildIntersection(svg,{heads:true,crosswalks:cfg.crosswalks,legNames:cfg.legNames});
+  let S=null, prev=null, D={cycle:100,groups:{}}, act=null;
+  function clone(o){return JSON.parse(JSON.stringify(o));}
+  function onStep(step){ prev=S; S=step.state(); S.legNames=cfg.legNames; S.crosswalks=cfg.crosswalks;
+    renderSignalDialog(dlg,S,prev); X.setHi(S.highlight||null);
+    if(S.type==='Actuated' && S.act){ act={i:0,el:0,dur:0,reason:''}; startGroup(); }
+    // make lerp targets
+    S.groups.forEach(g=>{ if(!D.groups[g.id]) D.groups[g.id]={start:g.start,dur:g.dur}; });
+    Object.keys(D.groups).forEach(id=>{ if(!S.groups.find(g=>g.id===id)) delete D.groups[id]; });
+  }
+  function startGroup(){ const g=S.groups[act.i]; const u=Math.random(); const max=u>0.72; act.dur = max? g.max : g.min + Math.pow(Math.random(),1.4)*(g.max-g.min); act.reason = max?'max-out':'gap-out'; act.el=0; act.phase='G'; }
+  function onFrame(dt,t){
+    if(!S) return;
+    // lerp numbers
+    const k=RM?1:Math.min(1,dt*5); let dirty=false;
+    const lp=(cur,tg)=>{ const n=Math.abs(tg-cur)<.05?tg:cur+(tg-cur)*k; if(n!==cur) dirty=true; return n; };
+    D.cycle=lp(D.cycle,S.cycle); S.groups.forEach(g=>{ const d=D.groups[g.id]; d.start=lp(d.start,g.start); d.dur=lp(d.dur,g.dur); });
+    const DD={cycle:D.cycle,groups:S.groups.map(g=>Object.assign({},g,D.groups[g.id]))};
+    const dial=dlg.querySelector('[data-role=dial]'); if(dial) dial.innerHTML=dialSVG(DD,S,t,S.type==='Fixed');
+    dlg.querySelectorAll('tr[data-g]').forEach(tr=>{ const d=D.groups[tr.dataset.g]; const a=tr.querySelector('[data-f=start]'),b=tr.querySelector('[data-f=dur]'); if(a)a.textContent=Math.round(d.start); if(b)b.textContent=Math.round(d.dur); });
+    // group states
+    let gs;
+    if(S.type==='Actuated' && S.act && act){
+      act.el+=dt; const g=S.groups[act.i];
+      if(act.phase==='G' && act.el>=act.dur){act.phase='Y';act.el=0;} else if(act.phase==='Y'&&act.el>=S.yellow){act.phase='R';act.el=0;} else if(act.phase==='R'&&act.el>=S.allred){act.i=(act.i+1)%S.groups.length;startGroup();}
+      gs={}; S.groups.forEach(x=>gs[x.id]=x===S.groups[act.i]?act.phase:null);
+      S.actClear = x => act.phase==='G' && act.dur-act.el<5;
+      const bar=dlg.querySelector('[data-role=actbar]'); if(bar){ const cg=S.groups[act.i]; const pct=act.phase==='G'?Math.min(100,act.el/cg.max*100):100; bar.innerHTML=`<span><b>${cg.name}</b></span><span class="dim">${act.phase==='G'?'green':act.phase==='Y'?'yellow':'all-red'} ${act.el.toFixed(1)} s</span><div class="track"><i style="width:${pct}%"></i><u style="left:${cg.min/cg.max*100}%"></u></div><span class="dim">min ${cg.min} · max ${cg.max}</span><span class="reason">${act.phase==='G'&&act.el>cg.min?'→ '+act.reason+' at '+act.dur.toFixed(1)+' s':''}</span>`; }
+    } else gs=groupStates(S,t);
+    dlg.querySelectorAll('tr[data-g]').forEach(tr=>tr.classList.toggle('act',gs[tr.dataset.g]==='G'));
+    const blink=Math.floor(t*2.5)%2===0;
+    const stOf=id=>S.type==='Unsignalized'?'free':turnState(S,id,gs);
+    ALLTURNS.forEach(id=>{ const st=stOf(id); const el=X.heads[id]; if(!el)return; el.setAttribute('fill', st==='green'?COL.g: st==='yellow'?COL.y: st==='fya'?(blink?COL.y:COL.off): S.type==='Unsignalized'?COL.off:COL.r); });
+    if(cfg.crosswalks) LEGS.forEach(L=>{ const cs=crossState(S,L,gs,t); X.peds[L].setAttribute('fill', cs==='walk'?'#fff': cs==='clear'?(blink?css('--warn'):'#333'):css('--warn')); });
+    X.tick(dt, stOf, id=>S.demand?S.demand[id.split('-')[1]]:1);
+  }
+  makePlayer(stage,steps,onStep,onFrame);
+}
+
+/* ===== Walkthrough 1: fixed-time protected-permissive ===== */
+(function(){
+  const legNames={N:'North',E:'East',S:'South',W:'West'};
+  const yieldL={}; ALLTURNS.forEach(id=>{ if(id.endsWith('-L')) yieldL[id]='Yield'; });
+  const base=()=>({type:'Fixed',tab:'Timing',cycle:100,offset:0,yellow:3,allred:2,selected:null,rules:Object.assign({},yieldL),onRed:{},groups:[],hot:null,demand:{T:1,L:.6,R:.5}});
+  const g=(id,name,start,dur,turns,cross,extra)=>Object.assign({id,name,start,dur,min:10,max:45,ext:3,turns,cross:cross||[]},extra||{});
+  const defaultGroups=()=>LEGS.map((L,i)=>g('s'+(i+1),'Signal '+(i+1),i*25,20,[L+'-L',L+'-T',L+'-R'],[],{}));
+  const NSL=['N-L','S-L'], NS=['N-L','N-T','N-R','S-L','S-T','S-R'], EW=['E-L','E-T','E-R','W-L','W-T','W-R'];
+  const dcross=(groups)=>{ // default rule: a crossing walks with each group that sends no through or protected left across it
+    groups.forEach(gr=>gr.cross=[]);
+    groups.forEach(gr=>{ LEGS.forEach(L=>{ const crosses=gr.turns.some(id=>{const [a,k]=id.split('-'); return (k==='T'&&(a===L||DEST[a][k]===L)) || (k==='L'&&gr.protectedLeft&&(a===L||DEST[a][k]===L)); }); if(!crosses) gr.cross.push(L); }); });
+  };
+  const steps=[
+    {cap:'<b>Open.</b> Select the node and press Edit Signal Timing. A default plan is already there: Fixed type, one 20 s group per approach, staggered by 20 s plus the 5 s yellow + all-red transition, so the cycle is 100 s.', state:()=>{const s=base(); s.groups=defaultGroups(); dcross(s.groups); return s;}},
+    {cap:'<b>Cycle.</b> Click the hub of the dial and type 90. Every group is clamped to fit inside the cycle minus yellow and all-red.', state:()=>{const s=base(); s.cycle=90; s.hubHot=true; s.groups=defaultGroups(); s.groups[3].dur=10; dcross(s.groups); return s;}},
+    {cap:'<b>Groups.</b> Select Signal 3 and Signal 4 and press Remove Selected. Rename Signal 1 to "N-S lefts" and Signal 2 to "N-S", then Add Signal Column for "E-W". The new group starts right after the previous group\'s green + yellow + all-red.', state:()=>{const s=base(); s.cycle=90; s.hot='add'; s.groups=[g('s1','N-S lefts',0,20,['N-L','N-T','N-R']),g('s2','N-S',25,20,['E-L','E-T','E-R']),g('s3','E-W',50,20,[])]; dcross(s.groups); return s;}},
+    {cap:'<b>Durations.</b> Drag the trailing handle of each arc, or type into Start Time and Duration: N-S lefts 0 + 12 s, N-S 17 + 28 s, E-W 50 + 35 s. The last group ends at 85 s; its 5 s transition closes the 90 s cycle.', state:()=>{const s=base(); s.cycle=90; s.groups=[g('s1','N-S lefts',0,12,['N-L','N-T','N-R']),g('s2','N-S',17,28,['E-L','E-T','E-R']),g('s3','E-W',50,35,[])]; dcross(s.groups); return s;}},
+    {cap:'<b>Assign turns.</b> Select "N-S lefts" in the grid. The Turns panel lists every movement at the node; tick the northbound and southbound lefts. Hovering a row highlights that turn in the viewport.', state:()=>{const s=base(); s.cycle=90; s.selected='s1'; s.highlight=NSL; s.groups=[g('s1','N-S lefts',0,12,NSL,[],{protectedLeft:true}),g('s2','N-S',17,28,[]),g('s3','E-W',50,35,[])]; dcross(s.groups); return s;}},
+    {cap:'<b>Protected-permissive.</b> Select "N-S" and tick all six north-south movements, including the lefts again. The panel notes "also in N-S lefts". A left in two groups is protected in the first and, because its give-way rule is Yield, permissive in the second: the head shows a flashing yellow arrow.', state:()=>{const s=base(); s.cycle=90; s.selected='s2'; s.highlight=NS; s.groups=[g('s1','N-S lefts',0,12,NSL,[],{protectedLeft:true}),g('s2','N-S',17,28,NS),g('s3','E-W',50,35,[])]; dcross(s.groups); return s;}},
+    {cap:'<b>East-west and crossings.</b> Select "E-W" and tick the six east-west movements. The Crossings list below the turns shows that, by default, the north and south crosswalks walk with E-W and the east and west crosswalks walk with N-S: a crossing walks with every group that sends no through or protected left across it. Tick or untick to override.', state:()=>{const s=base(); s.cycle=90; s.selected='s3'; s.highlight=EW; s.groups=[g('s1','N-S lefts',0,12,NSL,[],{protectedLeft:true}),g('s2','N-S',17,28,NS),g('s3','E-W',50,35,EW)]; dcross(s.groups); return s;}},
+    {cap:'<b>Priority tab.</b> Give-way rules live here. Lefts are already Yield (the node default). Press "Permissive lefts" to confirm every left that shares green with an opposing through yields to it, then tick "On red" for the four right turns. The Conflicts column should read "resolved" everywhere.', state:()=>{const s=base(); s.cycle=90; s.tab='Priority'; s.hot='perm'; ALLTURNS.forEach(id=>{ if(id.endsWith('-R')) s.onRed[id]=true; }); s.groups=[g('s1','N-S lefts',0,12,NSL,[],{protectedLeft:true}),g('s2','N-S',17,28,NS),g('s3','E-W',50,35,EW)]; dcross(s.groups); return s;}},
+    {cap:'<b>Run.</b> Press OK. Every signal head bound to this node now follows (time − offset) mod 90. Watch the dial hand sweep: protected lefts, then north-south with flashing yellow arrows, then east-west while the north and south crosswalks walk. Right turns on red proceed after a full stop when the gap allows.', hold:16, state:()=>{const s=base(); s.cycle=90; s.hot='ok'; ALLTURNS.forEach(id=>{ if(id.endsWith('-R')) s.onRed[id]=true; }); s.groups=[g('s1','N-S lefts',0,12,NSL,[],{protectedLeft:true}),g('s2','N-S',17,28,NS),g('s3','E-W',50,35,EW)]; dcross(s.groups); return s;}},
+  ];
+  signalScene('stageA',{legNames,crosswalks:true},steps);
+})();
+
+/* ===== Walkthrough 2: actuated main street ===== */
+(function(){
+  const legNames={N:'Pine St (N)',E:'Main St (E)',S:'Pine St (S)',W:'Main St (W)'};
+  const rules={}; ALLTURNS.forEach(id=>{ if(id.endsWith('-L')) rules[id]='Yield'; });
+  const onRed={}; ALLTURNS.forEach(id=>{ if(id.endsWith('-R')) onRed[id]=true; });
+  const g=(id,name,start,dur,max,turns,cross,extra)=>Object.assign({id,name,start,dur,min:5,max,ext:3,turns,cross:cross||[]},extra||{});
+  const G1=['E-L','W-L'], G2=['W-T','W-R','E-T','E-R','W-L','E-L'], G3=['N-L','N-T','N-R','S-L','S-T','S-R'];
+  const plan=()=>[g('g1','G1 EB/WB lefts',0,15,15,G1,[],{protectedLeft:true}),g('g2','G2 Main St',20,40,40,G2,['N','S']),g('g3','G3 side streets',65,25,25,G3,['E','W'])];
+  const base=(type)=>({type,tab:'Timing',cycle:95,offset:0,yellow:3,allred:2,selected:null,rules,onRed,groups:plan(),crossAuthored:true,demand:{T:1,L:.5,R:.4}});
+  const steps=[
+    {cap:'<b>Start from the fixed plan.</b> The three groups are laid out as if pretimed: G1 protected main-street lefts 15 s, G2 Main St 40 s, G3 the side streets 25 s, with 3 s yellow and 2 s all-red, a 95 s cycle.', state:()=>{const s=base('Fixed'); return s;}},
+    {cap:'<b>Type: Actuated.</b> Offset greys out, Start Time and Duration leave the grid, and Min Green, Max Green and Extension appear. The pretimed durations become the maximum greens; Min 5 s and Extension 3 s are typed per row.', state:()=>{const s=base('Actuated'); s.hot='type'; return s;}},
+    {cap:'<b>Membership.</b> G2 holds the Main St through and right turns plus the EB/WB lefts again (flashing yellow arrow) and the walks over both side-street legs. G3 holds both side streets and the walks over Main St. These were authored explicitly, so the Crossings rows carry no "(default)" tag.', state:()=>{const s=base('Actuated'); s.selected='g2'; s.highlight=G2; return s;}},
+    {cap:'<b>Run.</b> Groups serve in list order. Each holds its minimum green, then rests until 3 s pass with no vehicle within 30 m of the stop bar (gap-out) or the maximum is reached (max-out). There is no phase skipping. A pedestrian call stretches the minimum to 7 s WALK plus clearance at 1.1 m/s. The bar under the dial shows the live group.', hold:30, state:()=>{const s=base('Actuated'); s.act=true; s.hot='ok'; return s;}},
+  ];
+  signalScene('stageB',{legNames,crosswalks:true},steps);
+})();
+
+/* ===== Walkthrough 3: demand / OD ===== */
+(function(){
+  const stage=document.getElementById('stageC'), dlg=stage.querySelector('[data-role=dialog]'), svg=stage.querySelector('[data-role=xsvg]');
+  const legNames={N:'N',E:'E',S:'S',W:'W'};
+  const X=buildIntersection(svg,{heads:false,crosswalks:true,zones:true,legNames:{N:'North',E:'East',S:'South',W:'West'}});
+  const Z=['W','E','N','S'], ZN={W:'West',E:'East',N:'North',S:'South'};
+  const CAR={W:{E:520,N:70,S:110},E:{W:480,N:45,S:90},N:{W:40,E:60,S:15},S:{W:120,E:95,N:20}};
+  const PED={W:{E:90,N:90,S:90},E:{W:90,N:90,S:90},N:{W:90,E:90,S:90},S:{W:90,E:90,N:90}};
+  const TRUCK={W:{E:31,S:6},E:{W:27,S:4},S:{W:5,E:3}};
+  const CLASSES=['Car','Motorcycle','Bicycle','Truck','Bus','Train','Pedestrian'];
+  const sum=m=>{let t=0;for(const o in m)for(const d in m[o])t+=m[o][d];return t;};
+  const steps=[
+    {cap:'<b>Zones first.</b> The Zone tool put a demand zone on each boundary leg (West, East, North, South). Press Edit Demand: the OD Matrix tab opens on the Car class with the default period "Always Active" and an empty grid. Rows are origins, columns destinations, the diagonal is disabled.', state:()=>({tab:'OD',cls:'Car',period:'Always Active',periods:['Always Active'],m:{}})},
+    {cap:'<b>Add a period.</b> Press "+" beside the period tabs and type the name "PM Peak". Periods are one shared list across every class and both tabs, and they carry a name only: no start time or duration.', state:()=>({tab:'OD',cls:'Car',period:'PM Peak',periods:['Always Active','PM Peak'],m:{},hot:'addp',nameHot:true})},
+    {cap:'<b>Type the cars.</b> Whole numbers in veh/h per origin-destination cell. The totals line updates as you type: this period, this class over all periods, and all classes. A dot after a tab means it holds data.', state:()=>({tab:'OD',cls:'Car',period:'PM Peak',periods:['Always Active','PM Peak'],m:CAR,reveal:true})},
+    {cap:'<b>Check a route.</b> Click a header or a cell to select an origin row and destination column; the best route between the two zones is drawn in the viewport (West to East here). Double-click a header to fly the camera to that zone. Zone names are edited in Properties, not here.', state:()=>({tab:'OD',cls:'Car',period:'PM Peak',periods:['Always Active','PM Peak'],m:CAR,sel:['W','E']})},
+    {cap:'<b>Other classes.</b> Each class tab holds its own matrix for the same period. Trucks spawn with their trailers; the Pedestrian class is persons/h between zones that have footway legs. Which vehicle models a class spawns is a project-wide list, not a per-zone setting.', state:()=>({tab:'OD',cls:'Pedestrian',period:'PM Peak',periods:['Always Active','PM Peak'],m:PED,reveal:true,has:{Car:true,Truck:true}})},
+    {cap:'<b>Turns tab (optional).</b> If you only have turning-movement counts, select the node, type veh/h per approach and turn, and press Estimate OD. Proportional splits the entering volume by exit share; Adjusted to routing iterates against the route table and reports an RMSE. Only the OD matrix is simulated; the counts are converted when you press OK.', state:()=>({tab:'Turns',cls:'Car',period:'PM Peak',periods:['Always Active','PM Peak'],m:CAR,has:{Car:true,Truck:true,Pedestrian:true}})},
+    {cap:'<b>Run.</b> Press OK, then choose the live period by name: the Switch Demand panel during Play-in-Editor, a Blueprint call, or the console. Arrivals are Poisson at the authored rate into per-origin entry queues; vehicles route by shortest distance, spreading over routes within 1.3× of the best. The network warms up once so it starts populated.', hold:18, state:()=>({tab:'OD',cls:'Car',period:'PM Peak',periods:['Always Active','PM Peak'],m:CAR,has:{Car:true,Truck:true,Pedestrian:true},run:true,hot:'ok'})},
+  ];
+  let S=null;
+  function render(){
+    const m=S.m||{}; const tot=sum(m); const carTot=sum(CAR), allTot=carTot+sum(PED)+sum(TRUCK);
+    const has=Object.assign({},S.has||{}); if(tot) has[S.cls]=true;
+    let h=`<div class="tabbar"><span class="tab on">Edit Demand</span></div>
+    <div class="totals">This period: <b>${S.tab==='Turns'?sum(CAR):tot} ${S.cls==='Pedestrian'?'persons':'veh'}/h</b> &nbsp;|&nbsp; This class (all periods): <b>${S.cls==='Pedestrian'?sum(PED):S.cls==='Car'?carTot:0} /h</b> &nbsp;|&nbsp; All classes: <b>${has.Car?allTot:tot} /h</b></div>
+    <div class="seg"><span class="${S.tab==='OD'?'on':''}">OD Matrix</span><span class="${S.tab==='Turns'?'on':''}">Turns</span></div>
+    <div class="ctabs">${CLASSES.map(c=>`<span class="${c===S.cls?'on':''} ${has[c]?'has':''}">${c}</span>`).join('')}<span>+</span></div>
+    <div class="row"><div class="ctabs" style="margin:0">${S.periods.map(p=>`<span class="${p===S.period?'on':''} ${p==='PM Peak'&&tot?'has':''}">${p}</span>`).join('')}</div><span class="btn ${S.hot==='addp'?'hot':''}">+</span><span class="btn">Duplicate</span><span class="btn">Remove</span><label>Name</label><span class="in ${S.nameHot?'hl':''}" style="min-width:110px">${S.period}</span></div>`;
+    if(S.tab==='OD'){
+      h+=`<div class="panel" style="overflow-x:auto"><div class="grid" style="grid-template-columns:120px repeat(4,minmax(62px,1fr))"><div class="h">Origin \\ Destination</div>${Z.map(z=>`<div class="h ${S.sel&&S.sel[1]===z?'sel':''}" style="text-align:right">${ZN[z]}</div>`).join('')}`;
+      let n=0;
+      Z.forEach(o=>{ h+=`<div class="h">${ZN[o]}</div>`; Z.forEach(d=>{ if(o===d){h+=`<div class="c diag">—</div>`;return;} const v=(m[o]||{})[d]; const sel=S.sel&&S.sel[0]===o&&S.sel[1]===d; h+=`<div class="c ${v?'on':''} ${sel?'sel':''} ${S.reveal&&v&&!RM?'rv':''}" style="${S.reveal?`animation-delay:${(n++)*160}ms`:''}">${v||''}</div>`; }); });
+      h+=`</div></div>`;
+      if(!Object.keys(m).length && S.periods.length===1) h+=`<div class="note">Tip: zones are created with the Zone tool on each boundary leg before any demand can be entered.</div>`;
+    } else {
+      const grp=(name,rows)=>`<div class="panel" style="margin-bottom:6px"><div class="row" style="margin-bottom:2px"><b>${name}</b><span class="dim" style="margin-left:auto">${rows.reduce((a,r)=>a+r[1],0)} veh/h</span></div>${rows.map(r=>`<div class="row" style="margin:0 0 2px 10px"><span style="min-width:120px">${r[0]}</span><span class="in">${r[1]}</span></div>`).join('')}</div>`;
+      h+=grp('From West',[['to East (Through)',520],['to North (Left)',70],['to South (Right)',110]])+grp('From East',[['to West (Through)',480],['to South (Left)',90],['to North (Right)',45]]);
+      h+=`<div class="panel"><h5>Estimate OD</h5><div class="row"><label>Method</label><span class="in combo">Adjusted to routing</span><label>Epochs</label><span class="in">20</span><label>Damping</label><span class="in">0.5</span><span class="btn hot">Estimate</span></div><div class="dim">12 OD cells written from 1,315 veh/h entering · turn count error 38 → 4 veh/h RMSE over 20 epochs</div></div>`;
+    }
+    if(S.run) h+=`<div class="cmd">pmx.Traffic.SetActiveDemandPeriod DemoNetwork "PM Peak"</div>`;
+    h+=`<div class="ok"><span class="btn ${S.hot==='ok'?'hot':''}">OK</span><span class="btn">Cancel</span></div>`;
+    dlg.innerHTML=h;
+  }
+  const routeOf=(o,d)=>{ for(const k of ['L','T','R']) if(DEST[o][k]===d) return o+'-'+k; return null; };
+  function onStep(step){ S=step.state(); render(); X.setRoute(S.sel?routeOf(S.sel[0],S.sel[1]):null); }
+  function onFrame(dt,t){ if(!S) return;
+    X.tick(dt, ()=>'free', id=>{ if(!S.run) return 0; const [o,k]=id.split('-'); const v=(CAR[o]||{})[DEST[o][k]]||0; return v/300; });
+  }
+  makePlayer(stage,steps,onStep,onFrame);
+})();
+})();
+</script>
+
+</body></html>
