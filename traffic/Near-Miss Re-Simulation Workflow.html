@@ -1,0 +1,301 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Near-Miss Re-Simulation Workflow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Roboto+Slab:wght@600;700&display=swap">
+<style>
+/* Layout: charcoal brand bar, short thesis, one wide swimlane figure (scrolls sideways on phones),
+   then rules, handoffs and pilot. Parametrix web stack; red kept to the gate and phase numbers. */
+:root {
+  --font-head: 'Roboto Slab', Georgia, serif;
+  --font-body: 'Assistant', 'Segoe UI', system-ui, sans-serif;
+  --bg: #FFFFFF;
+  --surface: #F9FAFB;
+  --fg: #333333;
+  --muted: #676768;
+  --line: #DBDDDC;
+  --lane-a: #FFFFFF;
+  --lane-b: #F5F6F6;
+  --bar: #333333;
+  --red: #EE3D24;
+  --va: #F36E21;
+  --te: #0073BB;
+  --rd: #E0A800;
+  --dt: #4A4A4B;
+  --link: #0073BB;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1C1D1E; --surface: #232526; --fg: #ECECEC; --muted: #A7A8A9; --line: #3A3C3E;
+    --lane-a: #1C1D1E; --lane-b: #222425; --bar: #121314; --red: #FF5B43;
+    --va: #F68A4A; --te: #4FA6E6; --rd: #FCC214; --dt: #B3B4B5; --link: #4FA6E6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1C1D1E; --surface: #232526; --fg: #ECECEC; --muted: #A7A8A9; --line: #3A3C3E;
+  --lane-a: #1C1D1E; --lane-b: #222425; --bar: #121314; --red: #FF5B43;
+  --va: #F68A4A; --te: #4FA6E6; --rd: #FCC214; --dt: #B3B4B5; --link: #4FA6E6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+::selection { background: var(--red); color: #fff; }
+a { color: var(--link); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.bar { background: var(--bar); color: #fff; }
+.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-block: 18px; }
+.bar img { width: 150px; height: auto; display: block; }
+.bar .tag { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #DBDDDC; }
+
+header.intro { padding-block: 40px 8px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+h1 { font-family: var(--font-head); font-weight: 700; font-size: clamp(28px, 4.2vw, 42px); line-height: 1.15; margin: 0 0 16px; text-wrap: balance; max-width: 20ch; }
+.lede { font-size: 18px; max-width: 66ch; margin: 0; }
+.question { margin: 20px 0 0; padding: 14px 18px; background: var(--surface); border-left: 3px solid var(--red); max-width: 66ch; }
+.question b { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+
+section { padding-block: 28px; }
+h2 { font-family: var(--font-head); font-weight: 700; font-size: 24px; line-height: 1.25; margin: 0 0 6px; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+
+figure { margin: 0; }
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); -webkit-overflow-scrolling: touch; }
+.swim { display: block; width: 100%; min-width: 1000px; height: auto; font-family: var(--font-body); }
+.hint { display: none; font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 900px) { .hint { display: block; } }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.legend svg { flex: none; }
+figcaption { margin-top: 12px; font-size: 15px; max-width: 82ch; }
+figcaption p { margin: 0 0 6px; }
+
+/* svg parts */
+.swim .la { fill: var(--lane-a); }
+.swim .lb { fill: var(--lane-b); }
+.swim .rule { stroke: var(--line); stroke-width: 1; }
+.swim .stripe.va { fill: var(--va); } .swim .stripe.te { fill: var(--te); }
+.swim .stripe.rd { fill: var(--rd); } .swim .stripe.dt { fill: var(--dt); }
+.swim .lname { fill: var(--fg); font-weight: 700; font-size: 14px; }
+.swim .lrole { fill: var(--muted); font-size: 12px; }
+.swim .phase { fill: var(--fg); font-family: var(--font-head); font-weight: 700; font-size: 15px; }
+.swim .pnum { fill: var(--red); }
+.swim .psub { fill: var(--muted); font-size: 12px; }
+.swim .base { fill: var(--bg); }
+.swim .tint { stroke-width: 1.5; fill-opacity: .1; }
+.swim .va .tint { fill: var(--va); stroke: var(--va); }
+.swim .te .tint { fill: var(--te); stroke: var(--te); }
+.swim .rd .tint { fill: var(--rd); stroke: var(--rd); fill-opacity: .16; }
+.swim .dt .tint { fill: var(--dt); stroke: var(--dt); }
+.swim .back .tint { stroke-opacity: .75; }
+.swim .hub .tint { stroke-width: 3; fill-opacity: .2; }
+.swim .bt { fill: var(--fg); font-weight: 700; font-size: 13.5px; }
+.swim .bd { fill: var(--muted); font-size: 11.5px; }
+.swim .prog, .swim .flow { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.swim .ah, .swim .dot { fill: var(--muted); }
+.swim .hlab { fill: var(--fg); font-size: 11.5px; font-weight: 600; }
+.swim .halo { stroke: var(--lane-a); stroke-width: 8; }
+.swim .api rect { fill: var(--bg); stroke: var(--va); stroke-width: 1.8; }
+.swim .api text { fill: var(--fg); font-size: 11px; font-weight: 800; letter-spacing: .06em; }
+.swim .gate { fill: var(--red); stroke: var(--bg); stroke-width: 2; }
+.swim .gatelab { fill: var(--red); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.rules li { background: var(--surface); border-top: 3px solid var(--line); padding: 16px 16px 18px; min-width: 0; }
+.rules li:first-child { border-top-color: var(--red); }
+.rules h3 { font-family: var(--font-body); font-size: 17px; font-weight: 800; margin: 0 0 4px; line-height: 1.3; text-wrap: balance; }
+.rules p { margin: 0; font-size: 15px; color: var(--muted); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+thead th { background: var(--surface); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+tbody tr:last-child td { border-bottom: 0; }
+td.ph { font-family: var(--font-head); color: var(--red); font-weight: 700; font-variant-numeric: tabular-nums; width: 3.5em; }
+td.what { font-weight: 700; }
+td.fmt { color: var(--muted); max-width: 46ch; }
+
+.pilot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 24px; align-items: start; background: var(--surface); padding: 24px; border-radius: 6px; }
+.pilot ol { margin: 0; padding-left: 22px; }
+.pilot li { margin-bottom: 6px; }
+@media (max-width: 720px) { .pilot { grid-template-columns: 1fr; padding: 18px; } }
+
+footer { padding-block: 24px 40px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); margin-top: 16px; }
+</style>
+
+<div class="bar"><div class="wrap">
+  <img src="data:image/png;base64,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" alt="Parametrix">
+  <span class="tag">Concept workflow · Draft for discussion</span>
+</div></div>
+
+<main>
+<header class="intro"><div class="wrap">
+  <p class="eyebrow">Safety design testing in the digital twin</p>
+  <h1>Test the safety fix before it's built</h1>
+  <p class="lede">Measure near-misses at today's intersection from camera video. Rebuild those incidents in a calibrated Vissim model. Then run the same traffic through a set of design alternatives, score each one with the same video analytics, and compare them side by side in the UE5 twin.</p>
+  <p class="question"><b>The question each project answers</b>Which alternative reduces conflicts the most, and where do the remaining ones move?</p>
+</div></header>
+
+<section><div class="wrap">
+  <h2>Who does what, phase by phase</h2>
+  <p class="sub">Each lane is one discipline. Labeled arrows are handoffs between teams.</p>
+  <figure>
+    <div class="scroller"><svg class="swim" viewBox="0 0 1250 544" role="img" aria-label="Swimlane workflow across five phases. Video analytics extracts trajectories and incident seeds from field video. Traffic engineering calibrates a Vissim model and exports FZP vehicle records, which the digital twin uses to replay incidents. Roadway design supplies a set of design alternatives; traffic engineering simulates each one and the twin renders each run from the field camera positions. Rendered video goes through the video analytics API, results return to the twin, and the alternatives are compared there before roadway design selects one.">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="la" x="0" y="56" width="1250" height="120"/>
+<rect class="stripe va" x="0" y="56" width="5" height="120"/>
+<text class="lname" x="18" y="112">Video analytics</text>
+<text class="lrole" x="18" y="129">measures conflicts</text>
+<rect class="lb" x="0" y="176" width="1250" height="120"/>
+<rect class="stripe te" x="0" y="176" width="5" height="120"/>
+<text class="lname" x="18" y="232">Traffic engineering</text>
+<text class="lrole" x="18" y="249">models behavior</text>
+<rect class="la" x="0" y="296" width="1250" height="120"/>
+<rect class="stripe dt" x="0" y="296" width="5" height="120"/>
+<text class="lname" x="18" y="352">Digital twin</text>
+<text class="lrole" x="18" y="369">builds and compares</text>
+<rect class="lb" x="0" y="416" width="1250" height="120"/>
+<rect class="stripe rd" x="0" y="416" width="5" height="120"/>
+<text class="lname" x="18" y="472">Roadway design</text>
+<text class="lrole" x="18" y="489">designs the options</text>
+<line class="rule" x1="0" y1="48" x2="1250" y2="48"/>
+<text class="phase" x="269" y="22" text-anchor="middle"><tspan class="pnum">1</tspan>  Capture</text>
+<text class="psub" x="269" y="39" text-anchor="middle">today&#x27;s intersection</text>
+<text class="phase" x="487" y="22" text-anchor="middle"><tspan class="pnum">2</tspan>  Calibrate</text>
+<text class="psub" x="487" y="39" text-anchor="middle">rebuild today&#x27;s incidents</text>
+<text class="phase" x="705" y="22" text-anchor="middle"><tspan class="pnum">3</tspan>  Alternatives</text>
+<text class="psub" x="705" y="39" text-anchor="middle">a set of design options</text>
+<text class="phase" x="923" y="22" text-anchor="middle"><tspan class="pnum">4</tspan>  Simulate</text>
+<text class="psub" x="923" y="39" text-anchor="middle">every alternative</text>
+<text class="phase" x="1141" y="22" text-anchor="middle"><tspan class="pnum">5</tspan>  Compare</text>
+<text class="psub" x="1141" y="39" text-anchor="middle">analyze and decide in the twin</text>
+<line class="prog" x1="354" y1="116" x2="401" y2="116" marker-end="url(#ah)"/>
+<line class="prog" x1="354" y1="236" x2="401" y2="236" marker-end="url(#ah)"/>
+<line class="prog" x1="572" y1="236" x2="619" y2="236" marker-end="url(#ah)"/>
+<line class="prog" x1="796" y1="236" x2="837" y2="236" marker-end="url(#ah)"/>
+<line class="prog" x1="354" y1="356" x2="401" y2="356" marker-end="url(#ah)"/>
+<line class="prog" x1="572" y1="356" x2="619" y2="356" marker-end="url(#ah)"/>
+<line class="prog" x1="796" y1="356" x2="837" y2="356" marker-end="url(#ah)"/>
+<line class="prog" x1="1014" y1="356" x2="1055" y2="356" marker-end="url(#ah)"/>
+<polyline class="flow" points="289,148 289,176 467,176 467,203" marker-end="url(#ah)"/>
+<text class="hlab" x="378" y="170" text-anchor="middle">trajectories + events</text>
+<line class="flow" x1="527" y1="148" x2="527" y2="203" marker-end="url(#ah)"/>
+<text class="hlab" x="534" y="180" text-anchor="start">incident seeds</text>
+<line class="flow" x1="269" y1="444" x2="269" y2="389" marker-end="url(#ah)"/>
+<text class="hlab" x="276" y="420" text-anchor="start">survey control</text>
+<line class="flow" x1="487" y1="268" x2="487" y2="323" marker-end="url(#ah)"/>
+<text class="hlab" x="480" y="300" text-anchor="end">FZP vehicle records</text>
+<line class="flow" x1="705" y1="438" x2="705" y2="389" marker-end="url(#ah)"/>
+<polyline class="flow" points="705,416 814,416 814,296 735,296 735,269" marker-end="url(#ah)"/>
+<circle class="dot" cx="705" cy="416" r="3"/>
+<text class="hlab" x="698" y="420" text-anchor="end">design alternatives</text>
+<line class="halo" x1="814" y1="350" x2="814" y2="362"/>
+<line class="flow" x1="814" y1="349" x2="814" y2="363"/>
+<line class="flow" x1="923" y1="268" x2="923" y2="317" marker-end="url(#ah)"/>
+<text class="hlab" x="916" y="300" text-anchor="end">FZP per run</text>
+<polyline class="flow" points="973,318 973,296 1111,296 1111,149" marker-end="url(#ah)"/>
+<text class="hlab" x="1042" y="290" text-anchor="middle">rendered video</text>
+<g class="api"><rect x="1091" y="226" width="40" height="20" rx="10"/><text x="1111" y="240" text-anchor="middle">API</text></g>
+<line class="flow" x1="1171" y1="148" x2="1171" y2="323" marker-end="url(#ah)"/>
+<text class="hlab" x="1178" y="240" text-anchor="start">results</text>
+<line class="flow" x1="1141" y1="388" x2="1141" y2="443" marker-end="url(#ah)"/>
+<text class="hlab" x="1134" y="420" text-anchor="end">comparison sessions</text>
+<g class="bx va"><rect class="base" x="184" y="84" width="170" height="64" rx="4"/><rect class="tint" x="184" y="84" width="170" height="64" rx="4"/><text class="bt" x="269" y="105" text-anchor="middle">Extract trajectories</text><text class="bd" x="269" y="122" text-anchor="middle">All road users, from video</text><text class="bd" x="269" y="137" text-anchor="middle">+ near-miss event list</text></g>
+<g class="bx va"><rect class="base" x="402" y="84" width="170" height="64" rx="4"/><rect class="tint" x="402" y="84" width="170" height="64" rx="4"/><text class="bt" x="487" y="105" text-anchor="middle">Tag incident seeds</text><text class="bd" x="487" y="122" text-anchor="middle">Start state of each event:</text><text class="bd" x="487" y="137" text-anchor="middle">speed, timing, phase</text></g>
+<g class="bx va back"><rect class="base" x="1062" y="78" width="170" height="64" rx="4"/><rect class="tint" x="1062" y="78" width="170" height="64" rx="4"/></g>
+<g class="bx va back"><rect class="base" x="1059" y="81" width="170" height="64" rx="4"/><rect class="tint" x="1059" y="81" width="170" height="64" rx="4"/></g>
+<g class="bx va"><rect class="base" x="1056" y="84" width="170" height="64" rx="4"/><rect class="tint" x="1056" y="84" width="170" height="64" rx="4"/><text class="bt" x="1141" y="105" text-anchor="middle">Analyze rendered video</text><text class="bd" x="1141" y="122" text-anchor="middle">Same pipeline as the</text><text class="bd" x="1141" y="137" text-anchor="middle">field cameras, via API</text></g>
+<g class="bx te"><rect class="base" x="184" y="204" width="170" height="64" rx="4"/><rect class="tint" x="184" y="204" width="170" height="64" rx="4"/><text class="bt" x="269" y="225" text-anchor="middle">Counts + signal logs</text><text class="bd" x="269" y="242" text-anchor="middle">Volumes, speeds, high-res</text><text class="bd" x="269" y="257" text-anchor="middle">controller timing</text></g>
+<g class="bx te"><rect class="base" x="402" y="204" width="170" height="64" rx="4"/><rect class="tint" x="402" y="204" width="170" height="64" rx="4"/><text class="bt" x="487" y="225" text-anchor="middle">Calibrate Vissim model</text><text class="bd" x="487" y="242" text-anchor="middle">Rebuild each incident;</text><text class="bd" x="487" y="257" text-anchor="middle">match counts + conflicts</text></g>
+<g class="bx te back"><rect class="base" x="626" y="198" width="170" height="64" rx="4"/><rect class="tint" x="626" y="198" width="170" height="64" rx="4"/></g>
+<g class="bx te back"><rect class="base" x="623" y="201" width="170" height="64" rx="4"/><rect class="tint" x="623" y="201" width="170" height="64" rx="4"/></g>
+<g class="bx te"><rect class="base" x="620" y="204" width="170" height="64" rx="4"/><rect class="tint" x="620" y="204" width="170" height="64" rx="4"/><text class="bt" x="705" y="225" text-anchor="middle">Code each alternative</text><text class="bd" x="705" y="242" text-anchor="middle">Lanes, radii, phasing;</text><text class="bd" x="705" y="257" text-anchor="middle">one Vissim network each</text></g>
+<g class="bx te back"><rect class="base" x="844" y="198" width="170" height="64" rx="4"/><rect class="tint" x="844" y="198" width="170" height="64" rx="4"/></g>
+<g class="bx te back"><rect class="base" x="841" y="201" width="170" height="64" rx="4"/><rect class="tint" x="841" y="201" width="170" height="64" rx="4"/></g>
+<g class="bx te"><rect class="base" x="838" y="204" width="170" height="64" rx="4"/><rect class="tint" x="838" y="204" width="170" height="64" rx="4"/><text class="bt" x="923" y="225" text-anchor="middle">Run each alternative</text><text class="bd" x="923" y="242" text-anchor="middle">Same demand, many seeds;</text><text class="bd" x="923" y="257" text-anchor="middle">export FZP + delay</text></g>
+<g class="bx dt"><rect class="base" x="184" y="324" width="170" height="64" rx="4"/><rect class="tint" x="184" y="324" width="170" height="64" rx="4"/><text class="bt" x="269" y="345" text-anchor="middle">Build the scene</text><text class="bd" x="269" y="362" text-anchor="middle">3DGS capture + Cesium</text><text class="bd" x="269" y="377" text-anchor="middle">context, ground proxy</text></g>
+<g class="bx dt"><rect class="base" x="402" y="324" width="170" height="64" rx="4"/><rect class="tint" x="402" y="324" width="170" height="64" rx="4"/><text class="bt" x="487" y="345" text-anchor="middle">Replay incidents</text><text class="bd" x="487" y="362" text-anchor="middle">FZP drives the agents;</text><text class="bd" x="487" y="377" text-anchor="middle">check against the video</text></g>
+<g class="bx dt back"><rect class="base" x="626" y="318" width="170" height="64" rx="4"/><rect class="tint" x="626" y="318" width="170" height="64" rx="4"/></g>
+<g class="bx dt back"><rect class="base" x="623" y="321" width="170" height="64" rx="4"/><rect class="tint" x="623" y="321" width="170" height="64" rx="4"/></g>
+<g class="bx dt"><rect class="base" x="620" y="324" width="170" height="64" rx="4"/><rect class="tint" x="620" y="324" width="170" height="64" rx="4"/><text class="bt" x="705" y="345" text-anchor="middle">Load alternatives</text><text class="bd" x="705" y="362" text-anchor="middle">Crop splats, insert</text><text class="bd" x="705" y="377" text-anchor="middle">CAD mesh per alternative</text></g>
+<g class="bx dt back"><rect class="base" x="844" y="318" width="170" height="64" rx="4"/><rect class="tint" x="844" y="318" width="170" height="64" rx="4"/></g>
+<g class="bx dt back"><rect class="base" x="841" y="321" width="170" height="64" rx="4"/><rect class="tint" x="841" y="321" width="170" height="64" rx="4"/></g>
+<g class="bx dt"><rect class="base" x="838" y="324" width="170" height="64" rx="4"/><rect class="tint" x="838" y="324" width="170" height="64" rx="4"/><text class="bt" x="923" y="345" text-anchor="middle">Render each run</text><text class="bd" x="923" y="362" text-anchor="middle">From the field cameras&#x27;</text><text class="bd" x="923" y="377" text-anchor="middle">positions and lenses</text></g>
+<g class="bx dt hub"><rect class="base" x="1056" y="324" width="170" height="64" rx="4"/><rect class="tint" x="1056" y="324" width="170" height="64" rx="4"/><text class="bt" x="1141" y="345" text-anchor="middle">Compare in the twin</text><text class="bd" x="1141" y="362" text-anchor="middle">Switch alternatives;</text><text class="bd" x="1141" y="377" text-anchor="middle">overlay heatmaps, metrics</text></g>
+<g class="bx rd"><rect class="base" x="184" y="444" width="170" height="64" rx="4"/><rect class="tint" x="184" y="444" width="170" height="64" rx="4"/><text class="bt" x="269" y="465" text-anchor="middle">Survey + base map</text><text class="bd" x="269" y="482" text-anchor="middle">Sets the shared</text><text class="bd" x="269" y="497" text-anchor="middle">coordinate system</text></g>
+<g class="bx rd back"><rect class="base" x="626" y="438" width="170" height="64" rx="4"/><rect class="tint" x="626" y="438" width="170" height="64" rx="4"/></g>
+<g class="bx rd back"><rect class="base" x="623" y="441" width="170" height="64" rx="4"/><rect class="tint" x="623" y="441" width="170" height="64" rx="4"/></g>
+<g class="bx rd"><rect class="base" x="620" y="444" width="170" height="64" rx="4"/><rect class="tint" x="620" y="444" width="170" height="64" rx="4"/><text class="bt" x="705" y="465" text-anchor="middle">Design alternatives</text><text class="bd" x="705" y="482" text-anchor="middle">Alt A, B, C as CAD</text><text class="bd" x="705" y="497" text-anchor="middle">in survey coordinates</text></g>
+<g class="bx rd"><rect class="base" x="1056" y="444" width="170" height="64" rx="4"/><rect class="tint" x="1056" y="444" width="170" height="64" rx="4"/><text class="bt" x="1141" y="465" text-anchor="middle">Select an alternative</text><text class="bd" x="1141" y="482" text-anchor="middle">Reviewed in the twin</text><text class="bd" x="1141" y="497" text-anchor="middle">with team and client</text></g>
+<polygon class="gate" points="596,224 608,236 596,248 584,236"/>
+<text class="gatelab" x="596" y="284" text-anchor="middle">GATE 1</text>
+</svg></div>
+    <p class="hint">Scroll sideways to see all five phases.</p>
+    <ul class="legend">
+      <li><svg width="28" height="10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" style="stroke:var(--muted);stroke-width:1.4"/><path d="M20,1 L28,5 L20,9 z" style="fill:var(--muted)"/></svg>Handoff or next step</li>
+      <li><svg width="16" height="16" aria-hidden="true"><polygon points="8,0 16,8 8,16 0,8" style="fill:var(--red)"/></svg>Gate: go/no-go check</li>
+      <li><svg width="26" height="20" aria-hidden="true"><rect x="7" y="1" width="18" height="12" rx="2" style="fill:var(--bg);stroke:var(--muted);stroke-width:1.2"/><rect x="4" y="4" width="18" height="12" rx="2" style="fill:var(--bg);stroke:var(--muted);stroke-width:1.2"/><rect x="1" y="7" width="18" height="12" rx="2" style="fill:var(--bg);stroke:var(--muted);stroke-width:1.2"/></svg>Repeated for each alternative</li>
+      <li><svg width="34" height="18" aria-hidden="true"><rect x="1" y="1" width="32" height="16" rx="8" style="fill:var(--bg);stroke:var(--va);stroke-width:1.6"/><text x="17" y="13" text-anchor="middle" style="fill:var(--fg);font-size:9px;font-weight:800;font-family:var(--font-body)">API</text></svg>Video analytics API</li>
+    </ul>
+    <figcaption>
+      <p><strong>Gate 1:</strong> no alternative is simulated until the calibrated Vissim model, replayed in the twin from its FZP output, reproduces the incidents and the conflict heatmap measured from video.</p>
+      <p><strong>Phase 5:</strong> each alternative's rendered video goes through the video analytics API. Results come back to the twin, which is where the alternatives are displayed, compared and selected.</p>
+    </figcaption>
+  </figure>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Agree on five rules at kickoff</h2>
+  <p class="sub">These keep every alternative's numbers comparable. Each one is cheap to set up front and expensive to fix later.</p>
+  <ul class="rules">
+    <li><h3>One coordinate system</h3><p>Roadway design's survey control. Video trajectories, CAD, the splat capture, the Vissim network and the FZP output all register to it.</p></li>
+    <li><h3>One conflict pipeline</h3><p>Field video and rendered video go through the same analytics, via the API, with TTC and PET thresholds fixed at kickoff.</p></li>
+    <li><h3>Calibrate before predicting</h3><p>Match counts, speeds and the observed heatmap, and replay the incidents in the twin, before any alternative runs.</p></li>
+    <li><h3>Existing is Alternative 0</h3><p>Render the calibrated existing model and send it through the API too, so today's conditions are measured the same way as every option.</p></li>
+    <li><h3>Report relative change</h3><p>Show conflict reduction per alternative next to HSM crash modification factors. It shows direction and size of change, not a crash guarantee.</p></li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Handoffs</h2>
+  <p class="sub">What each team sends, and in what shape. Formats are starting suggestions to confirm with each team.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Phase</th><th>From</th><th>To</th><th>What</th><th>Shape</th></tr></thead>
+    <tbody>
+<tr><td class="ph">1</td><td>Video analytics</td><td>Traffic engineering</td><td class="what">Trajectories + near-miss events</td><td class="fmt">One row per object per frame: id, mode, time, x, y, speed. Event list with TTC/PET.</td></tr>
+<tr><td class="ph">1</td><td>Roadway design</td><td>Digital twin, traffic engineering</td><td class="what">Survey control + base map</td><td class="fmt">Project coordinate system and control points. Everything else registers to this.</td></tr>
+<tr><td class="ph">2</td><td>Video analytics</td><td>Traffic engineering</td><td class="what">Incident seeds</td><td class="fmt">Start state of each selected event: movements, speeds, arrival timing, signal phase.</td></tr>
+<tr><td class="ph">2</td><td>Traffic engineering</td><td>Digital twin</td><td class="what">FZP vehicle records</td><td class="fmt">Vissim .fzp from the calibrated model: world coordinates, speed and vehicle type per time step. Pedestrians come from the pedestrian record.</td></tr>
+<tr><td class="ph">3</td><td>Roadway design</td><td>Traffic engineering, digital twin</td><td class="what">Design alternatives</td><td class="fmt">DWG or DGN per alternative in survey coordinates, plus finished surface (LandXML) and signal phasing.</td></tr>
+<tr><td class="ph">4</td><td>Traffic engineering</td><td>Digital twin</td><td class="what">FZP per alternative</td><td class="fmt">Same format as phase 2, one file per alternative and seed, plus delay and queue summaries.</td></tr>
+<tr><td class="ph">5</td><td>Digital twin</td><td>Video analytics API</td><td class="what">Rendered video</td><td class="fmt">Clips rendered from the field cameras&#x27; positions and lenses, submitted per alternative and seed.</td></tr>
+<tr><td class="ph">5</td><td>Video analytics API</td><td>Digital twin</td><td class="what">Conflict results</td><td class="fmt">Same event list and heatmap format as the field data, tagged by alternative.</td></tr>
+<tr><td class="ph">5</td><td>Digital twin</td><td>Roadway design, client</td><td class="what">Comparison sessions</td><td class="fmt">Live twin views: switch alternatives, overlay heatmaps and metrics, replay incidents.</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="pilot">
+    <div>
+      <h2>Prove it with a backcast</h2>
+      <p class="sub" style="margin:0">One pilot site gives every discipline a reason to trust the method, and gives us the proof slide.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Pick an intersection where a safety fix is already built and video exists from before and after construction.</li>
+        <li>Run all five phases using only the before video, with the as-built design as the alternative.</li>
+        <li>In the twin, compare the predicted conflict heatmap with the one the API measures from the real after video.</li>
+        <li>Use the gap to tune the method, then repeat on each new post-construction dataset.</li>
+      </ol>
+    </div>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">Parametrix · Concept workflow for discussion · November 2026</div></footer>
+
+</body></html>
