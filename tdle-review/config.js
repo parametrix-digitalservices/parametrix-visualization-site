@@ -46,7 +46,7 @@ window.REVIEW_CONFIG = {
   music: [
     { id: "music-a", label: "A", title: "Modular Horizon", artist: "AI Generated", tags: "", src: "media/music/Modular_Horizon_2026-11-23T212111.mp3", notes: "" },
     { id: "music-b", label: "B", title: "Loop Signal", artist: "AI Generated", tags: "", src: "media/music/Loop_Signal_2026-11-23T212111.mp3", notes: "" },
-    { id: "music-c", label: "C", title: "Techline Momentum", artist: "AI Generated", tags: "", src: "media/music/Techline_Momentum_2026-11-23T223443.mp3", notes: "" }
+    { id: "music-c", label: "C", title: "Techline Momentum", artist: "AI Generated", tags: "", src: "media/music/Techline_Momentum_2026-11-23T223443.mp3", notes: "" },
     { id: "music-d", label: "D", title: "Circuit Motion", artist: "AI Generated", tags: "", src: "media/music/Circuit_Motion_2026-11-23T223443.mp3", notes: "" }
   ]
 };
