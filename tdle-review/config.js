@@ -39,13 +39,13 @@ window.REVIEW_CONFIG = {
     { id: "sfw-fife",      title: "South Federal Way to Fife",             version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" },
     { id: "fife-portland", title: "Fife to Portland Avenue",               version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" },
     { id: "portland-dome", title: "Portland Avenue to Tacoma Dome",        version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" },
-    { id: "closing",       title: "Closing",                               version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" }
+    { id: "closing",       title: "Closing",                               version: "Draft 1", updated: "2026-11-23", src: "media/clips/TDLE_EndCard_001.mp4",  frameAt: "", poster: "", notes: "" }
   ],
 
   /* MUSIC — options to compare. Same rules for id/src. "tags" is free text (mood, tempo, library). */
   music: [
-    { id: "music-a", label: "A", title: "Music option A", artist: "", tags: "", src: "media/music/option-a.mp3", notes: "" },
-    { id: "music-b", label: "B", title: "Music option B", artist: "", tags: "", src: "media/music/option-b.mp3", notes: "" },
+    { id: "music-a", label: "A", title: "Music option A", artist: "AI Generated", tags: "", src: "media/music/Modular_Horizon_2026-11-23T212111.mp3", notes: "" },
+    { id: "music-b", label: "B", title: "Music option B", artist: "AI Generated", tags: "", src: "media/music/Loop_Signal_2026-11-23T212111.mp3", notes: "" },
     { id: "music-c", label: "C", title: "Music option C", artist: "", tags: "", src: "media/music/option-c.mp3", notes: "" }
   ]
 };
