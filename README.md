@@ -11,6 +11,7 @@ deployed exactly as it sits.
 | `/` | Visualization Services overview — links to all three offerings |
 | `/photo-simulations/` | Camera-matched photo simulations, with before/after sliders |
 | `/visualization-twin/` | Visualization Twin development, demo video and traffic-model explainer |
+| `/tdle-review/` | Password-protected draft review page for the TDLE flyover video (not linked from the site; see `tdle-review/README.md`) |
 
 SnapStreets is described on the overview page; it does not have its own page yet.
 

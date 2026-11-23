@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Draft Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;800&family=Roboto+Slab:wght@600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Password gate -->
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <img class="gate-logo" src="assets/parametrix-white.png" alt="Parametrix">
+    <h1 id="gate-title">Draft Review</h1>
+    <p id="gate-sub" class="gate-sub"></p>
+    <form id="gate-form" autocomplete="on">
+      <label>Your name
+        <input id="gate-name" name="name" type="text" required maxlength="60" autocomplete="name" placeholder="First and last name">
+      </label>
+      <label>Password
+        <input id="gate-pw" name="password" type="password" required autocomplete="current-password">
+      </label>
+      <p id="gate-error" class="gate-error" role="alert"></p>
+      <button type="submit" class="btn btn-red btn-block">Open review</button>
+    </form>
+  </div>
+</div>
+
+<!-- Review app -->
+<div id="app" hidden>
+  <header class="topbar">
+    <img class="topbar-logo" src="assets/parametrix-white.png" alt="Parametrix">
+    <div class="topbar-titles">
+      <h1 id="app-title"></h1>
+      <p id="app-sub"></p>
+    </div>
+    <div class="topbar-user">
+      <span>Reviewing as <b id="who"></b></span>
+      <button id="btn-rename" class="btn btn-ghost-light btn-sm" type="button">Change name</button>
+      <button id="btn-lock" class="btn btn-ghost-light btn-sm" type="button">Lock</button>
+    </div>
+  </header>
+
+  <div id="mode-banner" class="mode-banner" hidden>
+    <b>Preview mode.</b> Feedback is saved in this browser only. Add the shared feedback sheet's URL to <code>config.js</code> (<code>backendUrl</code>) before sending the link out.
+  </div>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Contents">
+      <div class="toc-group" id="toc-overview-group">
+        <div class="toc-label">Overview</div>
+        <ol id="toc-overview"></ol>
+      </div>
+      <div class="toc-group">
+        <div class="toc-label">Clips</div>
+        <ol id="toc-clips"></ol>
+      </div>
+      <div class="toc-group" id="toc-music-group">
+        <div class="toc-label">Music</div>
+        <ol id="toc-music"></ol>
+      </div>
+      <div class="toc-foot">
+        <button id="btn-refresh" class="btn btn-ghost btn-sm" type="button">Refresh feedback</button>
+        <span id="sync-status" class="sync-status"></span>
+      </div>
+    </nav>
+
+    <main>
+      <section id="storyboard" class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow" id="draft-label"></p>
+            <h2>Storyboard</h2>
+            <p class="section-intro" id="intro"></p>
+          </div>
+          <p id="sb-summary" class="sb-summary"></p>
+        </div>
+        <div id="sb-grid" class="sb-grid"></div>
+      </section>
+
+      <section id="fullcut" class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Full cut</p>
+            <h2>Full video drafts</h2>
+            <p class="section-intro">All the clips edited together, with music. The newest draft is first; earlier drafts and their notes are kept below it.</p>
+          </div>
+        </div>
+        <div id="full-latest"></div>
+        <details id="full-older" class="older" hidden>
+          <summary>Earlier full cuts (<span id="full-older-count"></span>)</summary>
+          <div id="full-older-list"></div>
+        </details>
+      </section>
+
+      <section id="clips" class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Clip by clip</p>
+            <h2>Draft clips</h2>
+            <p class="section-intro">Watch each clip, then leave notes beside it. Notes are pinned to the moment you paused on — click any timestamp to jump back to it.</p>
+          </div>
+          <div class="section-tools">
+            <div class="seg" role="group" aria-label="Sort notes">
+              <span class="seg-label">Sort notes</span>
+              <button type="button" data-sort="timecode">By timecode</button>
+              <button type="button" data-sort="newest">Newest</button>
+            </div>
+            <label class="check"><input id="opt-older" type="checkbox" checked> Show notes on earlier drafts</label>
+            <label class="check"><input id="opt-playthrough" type="checkbox"> Play clips back to back</label>
+          </div>
+        </div>
+        <div id="clip-list"></div>
+      </section>
+
+      <section id="music" class="section">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Soundtrack</p>
+            <h2>Music options</h2>
+            <p class="section-intro">Listen to each option, give it a rating, and say why. You can also hear any track under the draft picture with <i>Try with the video</i>.</p>
+          </div>
+        </div>
+        <div id="music-ranking" class="ranking" hidden></div>
+        <div id="music-list" class="music-grid"></div>
+      </section>
+
+      <footer class="foot">Prepared by Parametrix · draft for review only, not for distribution</footer>
+    </main>
+  </div>
+</div>
+
+<!-- Music audition dialog -->
+<div id="audition" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="aud-title">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="aud-title">Try with the video</h3>
+      <button id="aud-close" class="icon-btn" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div class="aud-controls">
+      <label>Start at
+        <select id="aud-start"></select>
+      </label>
+      <label class="check" id="aud-continue-wrap"><input id="aud-continue" type="checkbox" checked> Keep playing through the following clips</label>
+    </div>
+    <div class="player"><video id="aud-video" muted playsinline controls preload="metadata"></video></div>
+    <p class="hint">The picture plays muted with this track underneath. Pause or scrub the video and the music follows. On a clip, the music starts where it would land in the finished cut.</p>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
