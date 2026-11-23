@@ -46,6 +46,6 @@ window.REVIEW_CONFIG = {
   music: [
     { id: "music-a", label: "A", title: "Music option A", artist: "AI Generated", tags: "", src: "media/music/Modular_Horizon_2026-11-23T212111.mp3", notes: "" },
     { id: "music-b", label: "B", title: "Music option B", artist: "AI Generated", tags: "", src: "media/music/Loop_Signal_2026-11-23T212111.mp3", notes: "" },
-    { id: "music-c", label: "C", title: "Music option C", artist: "", tags: "", src: "media/music/option-c.mp3", notes: "" }
+    { id: "music-c", label: "C", title: "Music option C", artist: "AI Generated", tags: "", src: "media/music/Techline_Momentum_2026-11-23T223443.mp3", notes: "" }
   ]
 };
