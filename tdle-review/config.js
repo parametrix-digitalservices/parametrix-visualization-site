@@ -14,7 +14,7 @@ window.REVIEW_CONFIG = {
 
   /* Shared feedback storage: paste your Google Apps Script web-app URL (ends in /exec).
      Leave blank to run in preview mode — feedback then stays in your own browser only. */
-  backendUrl: "",
+  backendUrl: "https://script.google.com/macros/s/AKfycbyOwIzSDMUD8wZTvFP5yLMkHH7lerv7caPbVp0tegpq4mCPQ01OFrvvrcOyeeGN_2qTRQ/exec",
 
   /* Frame rate used for the timecode column in the feedback sheet (H:MM:SS:FF). */
   fps: 30,
