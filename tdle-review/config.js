@@ -35,7 +35,7 @@ window.REVIEW_CONFIG = {
   clips: [
     { id: "opener",        title: "Opener",                                version: "Draft 1", updated: "2026-11-23", src: "media/clips/01-opener.mp4",        frameAt: "", poster: "", notes: "" },
     { id: "map",           title: "Corridor map",                          version: "Draft 1", updated: "2026-11-23", src: "media/clips/02-map.mp4",           frameAt: "", poster: "", notes: "" },
-    { id: "start-sfw",     title: "Project start to South Federal Way",    version: "Draft 1", updated: "2026-11-23", src: "media/clips/03-start-to-sfw.mp4",  frameAt: "", poster: "", notes: "" },
+    { id: "start-sfw",     title: "Project start to South Federal Way",    version: "Draft 1", updated: "2026-11-23", src: "media/clips/Start_to_FW_005.mp4",  frameAt: "", poster: "", notes: "" },
     { id: "sfw-fife",      title: "South Federal Way to Fife",             version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" },
     { id: "fife-portland", title: "Fife to Portland Avenue",               version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" },
     { id: "portland-dome", title: "Portland Avenue to Tacoma Dome",        version: "Draft 1", updated: "",           src: "",                                  frameAt: "", poster: "", notes: "" },
