@@ -544,7 +544,7 @@
 
     var body = h('div', { class: 'track-body' });
     if (m.src) {
-      var au = v.media = h('audio', { controls: true, preload: 'metadata', src: m.src });
+      var au = v.media = h('audio', { controls: true, loop: true, preload: 'metadata', src: m.src });
       body.append(au);
       au.addEventListener('loadedmetadata', function () { v.duration = au.duration; v.durEl.textContent = fmtTime(au.duration); });
       au.addEventListener('error', function () {
@@ -985,6 +985,7 @@
     var modal = $('#audition'), vid = $('#aud-video'), sel = $('#aud-start');
     vid.muted = true;
     aud.audio.preload = 'auto';
+    aud.audio.loop = true;   // tracks shorter than the picture wrap back to the start
     aud.pic = vid;
     bindPicture(vid);
     sel.addEventListener('change', function () { startAudition(+sel.value, true); });
@@ -996,17 +997,23 @@
   // Keep the track locked to whichever picture is showing (file video or Vimeo).
   function bindPicture(pic) {
     var live = function () { return aud.pic === pic; };
-    function sync() {
-      var t = aud.offset + pic.currentTime;
-      if (aud.audio.duration && t > aud.audio.duration) { aud.audio.pause(); return; }
-      if (Math.abs(aud.audio.currentTime - t) > 0.12) aud.audio.currentTime = t;
+    // Where the track should be for the current picture time, wrapping when the track is shorter.
+    function target() {
+      var t = aud.offset + pic.currentTime, d = aud.audio.duration;
+      return d > 0 && isFinite(d) ? t % d : t;
     }
+    // How far the track is from where it should be, measured around the loop.
+    function drift() {
+      var d = aud.audio.duration, diff = Math.abs(aud.audio.currentTime - target());
+      return d > 0 && isFinite(d) ? Math.min(diff, d - diff) : diff;
+    }
+    function sync() { if (drift() > 0.12) aud.audio.currentTime = target(); }
     pic.addEventListener('playing', function () { if (!live()) return; sync(); aud.audio.play().catch(function () {}); });
     pic.addEventListener('pause', function () { if (live()) aud.audio.pause(); });
     pic.addEventListener('waiting', function () { if (live()) aud.audio.pause(); });
     pic.addEventListener('seeked', function () { if (live()) sync(); });
     pic.addEventListener('timeupdate', function () {
-      if (live() && !pic.paused && Math.abs(aud.audio.currentTime - (aud.offset + pic.currentTime)) > 0.3) sync();
+      if (live() && !pic.paused && drift() > 0.3) sync();
     });
     pic.addEventListener('ended', function () {
       if (!live() || pic.isVimeo) return;
@@ -1052,7 +1059,7 @@
       }
     }
     aud.audio.pause();
-    try { aud.audio.currentTime = aud.offset; } catch (e) {}
+    try { var ad = aud.audio.duration; aud.audio.currentTime = ad > 0 && isFinite(ad) ? aud.offset % ad : aud.offset; } catch (e) {}
     if (aud.vimeoPic) { aud.vimeoPic.destroy(); aud.vimeoPic = null; }
     var first = o.seq[o.start];
     if (first.vimeo) {
