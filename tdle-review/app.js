@@ -299,7 +299,7 @@
       var p = self.player = new Vimeo.Player(el);
       var at = function (d) {
         if (d && typeof d.seconds === 'number') self._t = d.seconds;
-        if (d && d.duration) self.duration = d.duration;
+        if (d && d.duration) self._setDuration(d.duration);
       };
       p.on('play', function (d) { at(d); self.paused = false; self.ended = false; pauseAllMedia(self); self._emit('play'); });
       p.on('playing', function (d) { at(d); self.paused = false; self._emit('playing'); });
@@ -313,12 +313,18 @@
       p.on('timeupdate', function (d) { at(d); self._emit('timeupdate'); });
       p.on('seeked', function (d) { at(d); self._emit('seeked'); });
       p.on('bufferstart', function () { self._emit('waiting'); });
-      p.on('durationchange', function (d) { if (d && d.duration) self.duration = d.duration; });
+      p.on('durationchange', function (d) { if (d && d.duration) self._setDuration(d.duration); });
+      p.on('loaded', function () { p.getDuration().then(function (d) { self._setDuration(d); }).catch(function () {}); });
       if (opts.muted) p.setVolume(0).catch(function () {});
       return p.ready().then(function () { return p.getDuration(); }).then(function (d) {
-        self.duration = d;
-        self._emit('loadedmetadata');
-        if (self._pendingSeek != null) { var t = self._pendingSeek; self._pendingSeek = null; self.currentTime = t; }
+        if (d > 0) return self._setDuration(d);
+        // A password-protected video reports no length until someone unlocks it in the player.
+        self.locked = true;
+        self._emit('locked');
+        var poll = setInterval(function () {
+          if (!self.player || self.duration > 0) return clearInterval(poll);
+          p.getDuration().then(function (dd) { if (dd > 0) { clearInterval(poll); self._setDuration(dd); } }).catch(function () {});
+        }, 2000);
       });
     }).catch(function () { self.failed = true; self._emit('error'); });
   }
@@ -336,6 +342,15 @@
       return this.player ? this.player.play() : Promise.reject(new Error('not ready'));
     },
     pause: function () { if (this.player) this.player.pause().catch(function () {}); },
+    _setDuration: function (d) {
+      if (!(d > 0)) return;
+      this.duration = d;
+      if (this._metaSent) return;
+      this._metaSent = true;
+      if (this.locked) { this.locked = false; this._emit('unlocked'); }
+      this._emit('loadedmetadata');
+      if (this._pendingSeek != null) { var t = this._pendingSeek; this._pendingSeek = null; this.currentTime = t; }
+    },
     closest: function (sel) { return this.el.closest(sel); },
     getBoundingClientRect: function () { return this.el.getBoundingClientRect(); },
     scrollIntoView: function (o) { this.el.scrollIntoView(o); },
@@ -481,6 +496,11 @@
         }
         renderStoryboardMeta();
       });
+      if (vimeo) {
+        var lockHint = h('p', { class: 'notes', text: 'This video is password-protected on Vimeo. Enter its password in the player to watch. Timecodes start working once it’s unlocked.' });
+        vid.addEventListener('locked', function () { playerCol.insertBefore(lockHint, player.nextSibling); });
+        vid.addEventListener('unlocked', function () { lockHint.remove(); });
+      }
       vid.addEventListener('loadedmetadata', function () {
         v.duration = vid.duration;
         v.durEl.textContent = fmtTime(vid.duration);
