@@ -6,6 +6,11 @@ window.REVIEW_CONFIG = {
   title: "TDLE Flyover Video — Draft Review",
   subtitle: "Sound Transit · Tacoma Dome Link Extension",
   draftLabel: "Draft 1 · November 2026",
+  /* Shown to reviewers above the clips, and as a tooltip on each clip's badge. Set to "" to hide. */
+  clipNotice: "These clips are heavily compressed so they load quickly. Use them to check timing, framing and content. The full cut shows the final picture quality.",
+  clipBadge: "Compressed preview",
+  fullCutBadge: "Full quality",
+
   intro: "The storyboard shows one frame from each clip. Click a frame to go to that clip, or start with the full cut below. Leave notes beside any video; each note is pinned to the moment you paused on.",
 
   /* Password: SHA-256 of "tdle-review:" + your password (never the password itself — this file is public).
@@ -20,7 +25,9 @@ window.REVIEW_CONFIG = {
   fps: 30,
 
   /* FULL CUTS — the clips edited together with music. NEWEST FIRST: add each new draft at the top.
-     Each draft keeps its own notes. Keep each file under ~95 MB (GitHub's hard limit is 100 MB per file).
+     Each draft keeps its own notes.
+     - src: a Vimeo link (best: no size limit, full quality), e.g. "https://vimeo.com/123456789/abcdef1234"
+            (for unlisted videos include the part after the second slash), or a file in media/full/ under ~95 MB.
      - music: which track is on this cut, shown under the title (optional). */
   fullCuts: [
     { id: "full-d1", title: "Full cut", version: "Draft 1", updated: "", src: "", music: "", poster: "", notes: "" }
