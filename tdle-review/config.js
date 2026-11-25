@@ -30,7 +30,8 @@ window.REVIEW_CONFIG = {
             (for unlisted videos include the part after the second slash), or a file in media/full/ under ~95 MB.
      - music: which track is on this cut, shown under the title (optional). */
   fullCuts: [
-    { id: "full-d1", title: "Full cut", version: "Draft 1", updated: "2026-11-25", src: "https://player.vimeo.com/video/1244413807?h=71bfdfe94f", music: "", poster: "", notes: "" }
+    { id: "full-draft-1", title: "Full cut", version: "Draft 1", updated: "2026-11-25", src: "https://vimeo.com/1250173443/0c3ccd4fb0", music: "", poster: "",
+      notes: "First full draft, with no audio yet. To hear it with music, use “Try with the video” under any track in the Music section." }
   ],
 
   /* CLIPS — in running order. These also make up the storyboard.
